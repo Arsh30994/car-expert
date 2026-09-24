@@ -25,12 +25,23 @@ load_dotenv()
 GROQ_API_KEY = os.getenv("GROQ_API_KEY") or os.getenv("GEMINI_API_KEY")
 GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
 GROQ_VISION_MODEL = os.getenv("GROQ_VISION_MODEL")
-SECRET_KEY = 'django-insecure-1_d9jbam8@xg&xyko$1r!i#*y-1wnk)zk(^0=jcer(4h#r22ja'
+SECRET_KEY = os.getenv("SECRET_KEY", "dev-only-secret-key")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv("DEBUG", "False").lower() in {"1", "true", "yes"}
 
-ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
+ALLOWED_HOSTS = ["127.0.0.1", "localhost", ".vercel.app"]
+ALLOWED_HOSTS += [
+    host.strip()
+    for host in os.getenv("ALLOWED_HOSTS", "").split(",")
+    if host.strip()
+]
+CSRF_TRUSTED_ORIGINS = ["https://*.vercel.app"]
+CSRF_TRUSTED_ORIGINS += [
+    origin.strip().rstrip("/")
+    for origin in os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",")
+    if origin.strip()
+]
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGIN_URL = "login"
