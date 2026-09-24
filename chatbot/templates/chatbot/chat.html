@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}GarageMind — Chat{% endblock %}
+{% block content %}
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-section">
+    <h2 class="sidebar-title">Vehicle</h2>
+    <div class="spec-row"><span class="k">Make</span><span class="v">{{ vehicle.make|default:"—" }}</span></div>
+    <div class="spec-row"><span class="k">Model</span><span class="v">{{ vehicle.model|default:"—" }}</span></div>
+    <div class="spec-row"><span class="k">Year</span><span class="v">{{ vehicle.year|default:"—" }}</span></div>
+    <div class="spec-row"><span class="k">Mileage</span><span class="v data">{% if vehicle.mileage_km %}{{ vehicle.mileage_km }} km{% else %}—{% endif %}</span></div>
+    <a class="spec-edit-btn" href="{% url 'edit_vehicle' %}">Edit vehicle profile</a>
+  </div>
+  <div class="sidebar-section" style="flex:1;">
+    <h2 class="sidebar-title">Session history</h2>
+    <a href="{% url 'new_session' %}" class="history-new-btn">Add session</a>
+    {% for s in sessions %}
+      <div class="session-item-row {% if s.id == current_session.id %}active{% endif %}">
+        <a href="{% url 'session' s.id %}" class="session-item-main">
+          <span class="session-dot"></span>
+          <span class="session-title">{{ s.title|default:"New session" }}</span>
+          <span class="stime">{{ s.created_at|date:"M j" }}</span>
+        </a>
+        <button class="session-icon-btn" type="button" data-rename-toggle title="Rename session" aria-label="Rename session">✎</button>
+        <form method="post" action="{% url 'delete_session' s.id %}" class="session-delete-form">
+          {% csrf_token %}
+          <button class="session-icon-btn danger" type="submit" data-confirm-delete title="Delete session" aria-label="Delete session">×</button>
+        </form>
+        <form method="post" action="{% url 'rename_session' s.id %}" class="session-rename-form" hidden>
+          {% csrf_token %}
+          <input type="text" name="title" maxlength="80" value="{{ s.title|default:'New session' }}" aria-label="Session title">
+          <button type="submit">Save</button>
+        </form>
+      </div>
+    {% empty %}
+      <p class="muted">No sessions yet.</p>
+    {% endfor %}
+  </div>
+</aside>
+
+<section class="chat-pane">
+  <div class="chat-scroll" id="chatScroll">
+    {% for msg in messages %}
+      <div class="msg {% if msg.role == 'assistant' or msg.role == 'bot' %}assistant{% else %}user{% endif %}">
+        <div class="msg-avatar">{% if msg.role == 'assistant' or msg.role == 'bot' %}GM{% else %}You{% endif %}</div>
+        <div class="msg-body">
+          {% if msg.file %}
+            <div class="attach-thumb">
+              {% if msg.attachment_is_image %}
+                <img src="{{ msg.file.url }}" alt="">
+              {% else %}
+                <span class="filetype-icon">{{ msg.attachment_ext|upper }}</span>
+              {% endif %}
+              <span>{{ msg.file.name }}</span>
+            </div>
+          {% endif %}
+          {% if msg.text %}<div class="msg-bubble">{{ msg.text|linebreaksbr }}</div>{% endif %}
+
+          {% if msg.finding %}
+            <div class="finding-card severity-{{ msg.finding.severity }}">
+              <div class="finding-head">
+                <span class="severity-chip">{{ msg.finding.severity|title }}</span>
+                <span class="confidence">{{ msg.finding.confidence }}% confidence</span>
+              </div>
+              <div class="finding-title">{{ msg.finding.title }}</div>
+              <div class="finding-body">{{ msg.finding.body }}</div>
+              <div class="finding-rec"><span class="rk">Next:</span> {{ msg.finding.recommendation }}</div>
+            </div>
+          {% endif %}
+
+          <div class="msg-time">{{ msg.created_at|date:"g:i A" }}</div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+  <div class="composer-wrap" id="dropZone">
+    <div class="drop-hint">Drop file to attach</div>
+    <div class="staged-file" id="stagedFile">
+      <span class="filetype-icon">✓</span>
+      <span id="stagedFileName"></span>
+      <button class="remove-file" type="button" id="removeFileBtn">×</button>
+    </div>
+    <form id="chatForm" class="composer" method="post" enctype="multipart/form-data"
+          action="{% url 'send_message' current_session.id %}">
+      {% csrf_token %}
+      <button class="attach-btn" type="button" id="attachBtn">📎</button>
+      <input type="file" name="file" id="fileInput" accept="image/*,video/*,audio/*,.pdf" hidden />
+      <textarea rows="1" name="text" placeholder="Describe the issue, or attach a file…" id="messageInput"></textarea>
+      <button class="send-btn" type="submit" id="sendBtn">➤</button>
+    </form>
+    <div class="composer-hint">Car and vehicle topics only. Photos are read as observations, not confirmed diagnoses.</div>
+  </div>
+</section>
+{% endblock %}

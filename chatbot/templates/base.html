@@ -1,0 +1,56 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}GarageMind{% endblock %}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'chatbot/style.css' %}">
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-name">Garage<span>Mind</span></div>
+    </div>
+    <div class="topbar-meta">
+      {% if user.is_authenticated %}
+        <span>
+          {% if vehicle.year or vehicle.make or vehicle.model %}
+            {{ vehicle.year }} {{ vehicle.make }} {{ vehicle.model }}
+          {% else %}
+            No vehicle set
+          {% endif %}
+        </span>
+        <div class="divider"></div>
+        {% if vehicle.vin %}
+          <span class="data">VIN {{ vehicle.vin|slice:":3" }}···{{ vehicle.vin|slice:"-4:" }}</span>
+        {% else %}
+          <span class="data">VIN not set</span>
+        {% endif %}
+      {% else %}
+        <span>Sign in to save vehicle profiles and chat history</span>
+      {% endif %}
+    </div>
+    <div class="topbar-actions">
+      {% if user.is_authenticated %}
+        <span class="signed-in-user">{{ user.username }}</span>
+        <a href="{% url 'new_session' %}" class="new-session-btn">New session</a>
+        <form method="post" action="{% url 'logout' %}" class="logout-form">
+          {% csrf_token %}
+          <button type="submit" class="logout-btn">Log out</button>
+        </form>
+      {% else %}
+        <a href="{% url 'login' %}" class="new-session-btn">Sign in</a>
+        <a href="{% url 'register' %}" class="new-session-btn accent">Create account</a>
+      {% endif %}
+    </div>
+  </div>
+  <div class="layout">
+    {% block content %}{% endblock %}
+  </div>
+</div>
+<script src="{% static 'chatbot/chat.js' %}"></script>
+</body>
+</html>

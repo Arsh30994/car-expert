@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Edit vehicle — GarageMind{% endblock %}
+{% block content %}
+<section class="edit-pane">
+  <div class="edit-shell">
+    <div class="edit-header">
+      <div>
+        <h1 class="edit-title">Vehicle profile</h1>
+        <p class="edit-subtitle">Saved details are sent with every question so answers match this car.</p>
+      </div>
+      <a href="{% url 'session' current_session.id %}" class="spec-edit-btn compact">Back to chat</a>
+    </div>
+
+    <form method="post" class="vehicle-form">
+      {% csrf_token %}
+      <label>
+        <span>Make</span>
+        <input type="text" name="make" placeholder="Toyota" value="{{ vehicle.make }}">
+      </label>
+      <label>
+        <span>Model</span>
+        <input type="text" name="model" placeholder="Corolla" value="{{ vehicle.model }}">
+      </label>
+      <label>
+        <span>Year</span>
+        <input type="number" name="year" placeholder="2022" value="{{ vehicle.year|default_if_none:'' }}">
+      </label>
+      <label>
+        <span>Variant</span>
+        <input type="text" name="variant" placeholder="SE, Sport, LX..." value="{{ vehicle.variant }}">
+      </label>
+      <label>
+        <span>Engine</span>
+        <input type="text" name="engine" placeholder="1.5L Petrol" value="{{ vehicle.engine }}">
+      </label>
+      <label>
+        <span>Fuel type</span>
+        <input type="text" name="fuel_type" placeholder="Petrol, diesel, hybrid, EV" value="{{ vehicle.fuel_type }}">
+      </label>
+      <label>
+        <span>Transmission</span>
+        <input type="text" name="transmission" placeholder="Manual, automatic, CVT" value="{{ vehicle.transmission }}">
+      </label>
+      <label>
+        <span>Mileage</span>
+        <input type="number" name="mileage_km" placeholder="Mileage in km" value="{{ vehicle.mileage_km|default_if_none:'' }}">
+      </label>
+      <label class="full">
+        <span>VIN</span>
+        <input type="text" name="vin" maxlength="17" placeholder="Optional 17-character VIN" value="{{ vehicle.vin }}">
+      </label>
+      <div class="form-actions">
+        <button type="submit" name="save_vehicle" value="1" class="send-btn save-btn">Save vehicle</button>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Sign in — GarageMind{% endblock %}
+{% block content %}
+<section class="auth-pane">
+  <div class="auth-shell">
+    <h1 class="edit-title">Sign in</h1>
+    <p class="edit-subtitle">Use your account to keep vehicle profiles and chat history private.</p>
+
+    {% if form.non_field_errors %}
+      <div class="form-error">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <form method="post" class="auth-form">
+      {% csrf_token %}
+      <label>
+        <span>Username</span>
+        {{ form.username }}
+      </label>
+      <label>
+        <span>Password</span>
+        {{ form.password }}
+      </label>
+      <input type="hidden" name="next" value="{{ next }}">
+      <button type="submit" class="send-btn save-btn">Sign in</button>
+    </form>
+
+    <p class="auth-switch">New here? <a href="{% url 'register' %}">Create an account</a></p>
+  </div>
+</section>
+{% endblock %}

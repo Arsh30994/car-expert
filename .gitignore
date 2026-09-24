@@ -1,0 +1,8 @@
+.env
+db.sqlite3
+media/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage

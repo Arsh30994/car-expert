@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Create account — GarageMind{% endblock %}
+{% block content %}
+<section class="auth-pane">
+  <div class="auth-shell">
+    <h1 class="edit-title">Create account</h1>
+    <p class="edit-subtitle">Your sessions and vehicle details will be attached to this login.</p>
+
+    <form method="post" class="auth-form">
+      {% csrf_token %}
+      {% for field in form %}
+        <label>
+          <span>{{ field.label }}</span>
+          {{ field }}
+          {% if field.errors %}
+            <small class="field-error">{{ field.errors|striptags }}</small>
+          {% endif %}
+        </label>
+      {% endfor %}
+      <button type="submit" class="send-btn save-btn">Create account</button>
+    </form>
+
+    <p class="auth-switch">Already have an account? <a href="{% url 'login' %}">Sign in</a></p>
+  </div>
+</section>
+{% endblock %}
