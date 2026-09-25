@@ -1,7 +1,12 @@
-from django.contrib.auth.models import User
-from django.test import TestCase
-from django.urls import reverse
+import os
 from unittest.mock import patch
+
+from django.contrib.auth.models import User
+from django.core.management import call_command
+from django.test import TestCase
+from django.test.utils import override_settings
+from django.templatetags.static import static
+from django.urls import reverse
 
 from .models import ChatSession, Message, VehicleProfile
 
@@ -12,6 +17,42 @@ class ChatAuthTests(TestCase):
             username="driver",
             password="test-pass-123",
         )
+
+    def test_public_routes_render(self):
+        login_response = self.client.get(reverse("login"))
+        self.assertEqual(login_response.status_code, 200)
+        self.assertContains(login_response, "Sign in")
+
+        register_response = self.client.get(reverse("register"))
+        self.assertEqual(register_response.status_code, 200)
+        self.assertContains(register_response, "Create account")
+
+    def test_static_css_is_resolved_from_the_expected_app_path(self):
+        from django.contrib.staticfiles import finders
+
+        static_path = finders.find("chatbot/style.css")
+        expected_tail = os.path.normpath("chatbot/static/chatbot/style.css")
+
+        self.assertIsNotNone(static_path)
+        self.assertTrue(os.path.normpath(static_path).endswith(expected_tail))
+
+    @override_settings(
+        DEBUG=False,
+        STORAGES={
+            "staticfiles": {
+                "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+            },
+        },
+    )
+    def test_production_serves_collected_css_and_javascript(self):
+        call_command("collectstatic", interactive=False, verbosity=0)
+
+        for asset in ("chatbot/style.css", "chatbot/chat.js"):
+            response = self.client.get(static(asset))
+
+            self.assertEqual(response.status_code, 200)
+            body = b"".join(response.streaming_content)
+            self.assertGreater(len(body), 0)
 
     def test_chat_requires_login(self):
         response = self.client.get(reverse("chat"))
