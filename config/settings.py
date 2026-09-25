@@ -103,10 +103,25 @@ MEDIA_ROOT = BASE_DIR / "media"
 # Database
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
 
+def _sqlite_db_path():
+    configured = os.getenv("DATABASE_PATH") or os.getenv("DB_PATH")
+    if configured:
+        database_path = Path(configured)
+    elif os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME"):
+        database_path = Path("/tmp/car-expert.db.sqlite3")
+    else:
+        database_path = BASE_DIR / "db.sqlite3"
+
+    if database_path.parent and not database_path.parent.exists():
+        database_path.parent.mkdir(parents=True, exist_ok=True)
+
+    return str(database_path)
+
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'NAME': _sqlite_db_path(),
     }
 }
 
@@ -147,6 +162,7 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_DIRS = [BASE_DIR / 'chatbot' / 'static']
 STORAGES = {
     "staticfiles": {
         "BACKEND": (
