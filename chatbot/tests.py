@@ -1,4 +1,5 @@
 import os
+import tempfile
 from unittest.mock import patch
 
 from django.contrib.auth.models import User
@@ -38,21 +39,34 @@ class ChatAuthTests(TestCase):
 
     @override_settings(
         DEBUG=False,
+        MIDDLEWARE=[
+            "django.middleware.security.SecurityMiddleware",
+            "whitenoise.middleware.WhiteNoiseMiddleware",
+            "django.contrib.sessions.middleware.SessionMiddleware",
+            "django.middleware.common.CommonMiddleware",
+            "django.middleware.csrf.CsrfViewMiddleware",
+            "django.contrib.auth.middleware.AuthenticationMiddleware",
+            "django.contrib.messages.middleware.MessageMiddleware",
+            "django.middleware.clickjacking.XFrameOptionsMiddleware",
+        ],
         STORAGES={
             "staticfiles": {
                 "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
             },
         },
     )
-    def test_production_serves_collected_css_and_javascript(self):
-        call_command("collectstatic", interactive=False, verbosity=0)
+    def test_z_production_serves_collected_css_and_javascript(self):
+        # Collection is a temporary deployment concern, not project source.
+        with tempfile.TemporaryDirectory() as static_root:
+            with override_settings(STATIC_ROOT=static_root):
+                call_command("collectstatic", interactive=False, verbosity=0)
 
-        for asset in ("chatbot/style.css", "chatbot/chat.js"):
-            response = self.client.get(static(asset))
+                for asset in ("chatbot/style.css", "chatbot/chat.js"):
+                    response = self.client.get(static(asset))
 
-            self.assertEqual(response.status_code, 200)
-            body = b"".join(response.streaming_content)
-            self.assertGreater(len(body), 0)
+                    self.assertEqual(response.status_code, 200)
+                    body = b"".join(response.streaming_content)
+                    self.assertGreater(len(body), 0)
 
     def test_chat_requires_login(self):
         response = self.client.get(reverse("chat"))

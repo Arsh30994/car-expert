@@ -30,7 +30,11 @@ SECRET_KEY = os.getenv("SECRET_KEY", "dev-only-secret-key")
 # SECURITY WARNING: don't run with debug turned on in production!
 raw_debug = os.getenv("DEBUG")
 if raw_debug is None:
-    DEBUG = os.getenv("ENVIRONMENT", "development").lower() != "production"
+    # Vercel is always a production deployment, even if ENVIRONMENT was not set.
+    DEBUG = (
+        os.getenv("ENVIRONMENT", "development").lower() != "production"
+        and not os.getenv("VERCEL")
+    )
 else:
     DEBUG = raw_debug.lower() in {"1", "true", "yes"}
 
@@ -68,7 +72,6 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -76,6 +79,12 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+# Django's development static-file handler serves assets from each app's
+# ``static`` directory. WhiteNoise is only needed for collected production
+# assets, which Vercel creates during its build.
+if not DEBUG:
+    MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
 
 ROOT_URLCONF = 'config.urls'
 
