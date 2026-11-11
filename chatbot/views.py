@@ -1,5 +1,6 @@
 import os
 import tempfile
+import logging
 
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
@@ -10,6 +11,9 @@ from django.views.decorators.http import require_http_methods, require_POST
 
 from .gemini_client import get_response, is_car_related
 from .models import ChatSession, Message, VehicleProfile
+
+
+logger = logging.getLogger(__name__)
 
 
 def _browser_key(request):
@@ -232,6 +236,21 @@ def send_message(request, session_id):
             finding=finding,
         )
         return JsonResponse({"text": reply_text, "finding": finding})
+    except Exception:
+        # The chat UI always expects JSON. Returning a structured error here
+        # prevents a server-side exception from becoming an opaque browser
+        # parsing error.
+        logger.exception("Unable to process chat message for session %s", session.id)
+        return JsonResponse(
+            {
+                "text": (
+                    "I couldn't process that message right now. Please try again. "
+                    "If it continues, check the server log for the detailed error."
+                ),
+                "finding": None,
+            },
+            status=500,
+        )
     finally:
         if file_path:
             try:

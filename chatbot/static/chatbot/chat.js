@@ -140,13 +140,28 @@ document.addEventListener("DOMContentLoaded", () => {
                 },
             });
 
-            const data = await response.json();
+            const contentType = response.headers.get("content-type") || "";
+            const data = contentType.includes("application/json")
+                ? await response.json()
+                : null;
+
+            if (!response.ok) {
+                const detail = data?.text || `Request failed (${response.status}).`;
+                throw new Error(detail);
+            }
+
+            if (!data) {
+                throw new Error("The server returned an unexpected response.");
+            }
+
             typingEl.remove();
             appendAssistantMessage(data);
         } catch (err) {
             typingEl.remove();
             appendAssistantMessage({
-                text: "Something went wrong sending that — try again.",
+                text: err instanceof Error
+                    ? err.message
+                    : "Something went wrong sending that — try again.",
                 finding: null,
             });
             console.error(err);

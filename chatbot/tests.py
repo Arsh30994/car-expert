@@ -132,3 +132,23 @@ class ChatAuthTests(TestCase):
             Message.objects.filter(session=session, role="assistant").get().text,
             "Check the brake pads.",
         )
+
+    @patch("chatbot.views.get_response", side_effect=RuntimeError("Provider unavailable"))
+    @patch("chatbot.views.is_car_related", return_value=True)
+    def test_send_message_returns_json_when_processing_fails(
+        self,
+        _is_car_related,
+        _get_response,
+    ):
+        self.client.force_login(self.user)
+        session = ChatSession.objects.create(user=self.user, title="Electrical")
+        VehicleProfile.objects.create(session=session)
+
+        response = self.client.post(
+            reverse("send_message", args=[session.id]),
+            {"text": "The battery light is on"},
+        )
+
+        self.assertEqual(response.status_code, 500)
+        self.assertEqual(response["Content-Type"], "application/json")
+        self.assertIn("couldn't process", response.json()["text"])

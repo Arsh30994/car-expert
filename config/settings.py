@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 from pathlib import Path
 from dotenv import load_dotenv
 import os
+from django.core.exceptions import ImproperlyConfigured
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -22,6 +23,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 load_dotenv()
+IS_VERCEL = bool(os.getenv("VERCEL"))
 GROQ_API_KEY = os.getenv("GROQ_API_KEY") or os.getenv("GEMINI_API_KEY")
 GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
 GROQ_VISION_MODEL = os.getenv("GROQ_VISION_MODEL")
@@ -29,11 +31,14 @@ SECRET_KEY = os.getenv("SECRET_KEY", "dev-only-secret-key")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 raw_debug = os.getenv("DEBUG")
-if raw_debug is None:
+if IS_VERCEL:
+    # Never expose a Django traceback or settings values on a public deployment.
+    DEBUG = False
+elif raw_debug is None:
     # Vercel is always a production deployment, even if ENVIRONMENT was not set.
     DEBUG = (
         os.getenv("ENVIRONMENT", "development").lower() != "production"
-        and not os.getenv("VERCEL")
+        and not IS_VERCEL
     )
 else:
     DEBUG = raw_debug.lower() in {"1", "true", "yes"}
@@ -112,27 +117,35 @@ MEDIA_ROOT = BASE_DIR / "media"
 # Database
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
 
-def _sqlite_db_path():
-    configured = os.getenv("DATABASE_PATH") or os.getenv("DB_PATH")
-    if configured:
-        database_path = Path(configured)
-    elif os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME"):
-        database_path = Path("/tmp/car-expert.db.sqlite3")
-    else:
-        database_path = BASE_DIR / "db.sqlite3"
+DATABASE_URL = (
+    os.getenv("DATABASE_URL")
+    or os.getenv("POSTGRES_URL")
+    or os.getenv("POSTGRES_PRISMA_URL")
+    or os.getenv("NEON_DATABASE_URL")
+)
 
-    if database_path.parent and not database_path.parent.exists():
-        database_path.parent.mkdir(parents=True, exist_ok=True)
+if DATABASE_URL:
+    import dj_database_url
 
-    return str(database_path)
-
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': _sqlite_db_path(),
+    DATABASES = {
+        "default": dj_database_url.parse(
+            DATABASE_URL,
+            conn_max_age=600,
+            conn_health_checks=True,
+        )
     }
-}
+elif IS_VERCEL:
+    raise ImproperlyConfigured(
+        "A persistent Postgres database is required on Vercel. Add DATABASE_URL "
+        "in Project Settings → Environment Variables, then redeploy."
+    )
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
 
 
 # Password validation
