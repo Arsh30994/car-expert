@@ -21,15 +21,17 @@ The repository already contains Django authentication, conversation sessions, AI
 - React + TypeScript frontend (future milestone), Django REST backend.
 - PostgreSQL in production; SQLite for local development.
 - Owner-scoped Vehicle is the canonical garage entity.
-- Conversations, documents, diagnostics and generated images reference Vehicle.
+- GarageSelection stores one account-wide selected vehicle; every module resolves its context through this record.
+- Chat sessions use the selected garage vehicle when set and retain the old per-session VehicleProfile only as a backwards-compatible fallback.
+- Conversations, documents, diagnostics and generated images will reference the same canonical Vehicle.
 - AI provider abstraction prevents coupling to a single model.
 - Async jobs for document parsing, video and image generation.
 - Private object storage for uploads; validate content and size.
 - Deterministic escalation for safety-critical symptoms.
 
 ## Milestones
-1. **Foundation:** owner-scoped vehicle CRUD, tests, migration, documented API.
-2. **Knowledge:** link conversations to Vehicle; document upload, parsing, RAG.
+1. **Foundation:** owner-scoped vehicle CRUD, persistent account-wide selection, chat context integration, tests and migration.
+2. **Knowledge:** document upload, PDF parsing, chunking, embeddings and cited RAG answers linked to the selected Vehicle.
 3. **Vision & diagnostics:** validated image analysis, DTC knowledge and reports.
 4. **Voice & avatar:** STT, TTS, 3D avatar UI and speech animation.
 5. **Car Studio:** provider-backed image editing, gallery, before/after.
@@ -44,5 +46,7 @@ Do not claim a diagnostic certainty from a photograph or infer a part number wit
 - GET /api/garage/vehicles/{id}/ — retrieve own vehicle
 - PATCH /api/garage/vehicles/{id}/ — update own vehicle
 - DELETE /api/garage/vehicles/{id}/ — delete own vehicle
+- GET /api/garage/selection/ — read the account-wide selected vehicle
+- PATCH /api/garage/selection/ — set vehicle_id to a vehicle ID or null to clear selection
 
 Django session authentication and CSRF apply to modifying requests.
