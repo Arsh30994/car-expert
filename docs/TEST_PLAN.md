@@ -69,6 +69,7 @@ Use these prompts with S-01 unless stated otherwise. A response is acceptable wh
 | Malformed JSON | HTTP 400 JSON error | Automated now |
 | Unauthenticated garage request | Redirects to login | Automated now |
 | Read account-wide selected vehicle | Returns current user's persistent selection | Automated now |
+| Add vehicle from chat sidebar | Persists the vehicle and selects it account-wide | Automated now |
 | Set or clear selected vehicle | Persists across requests | Automated now |
 | Select another user's vehicle | HTTP 404; selection unchanged | Automated now |
 | Chat context uses selected garage vehicle | Shared vehicle overrides legacy session profile | Automated now |
@@ -82,7 +83,7 @@ Use these prompts with S-01 unless stated otherwise. A response is acceptable wh
 1. Register a test account and sign in.
 2. Open a new chat; confirm a session is created.
 3. Save a vehicle profile and confirm it remains visible in that chat.
-4. Add two vehicles through the garage API, then select one in the chat sidebar.
+4. Add a vehicle using the chat sidebar form; it becomes the account-wide selected vehicle. Add a second vehicle through the garage API, then select it in the sidebar.
 5. Open a second chat session and verify the same selected vehicle remains active.
 6. Send CHAT-01 and verify the answer references the selected garage vehicle.
 7. Change the selected vehicle and send another question; verify the new vehicle context is used.
