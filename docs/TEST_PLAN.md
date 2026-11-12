@@ -68,6 +68,12 @@ Use these prompts with S-01 unless stated otherwise. A response is acceptable wh
 | Invalid VIN length | HTTP 400 | Automated now |
 | Malformed JSON | HTTP 400 JSON error | Automated now |
 | Unauthenticated garage request | Redirects to login | Automated now |
+| Read account-wide selected vehicle | Returns current user's persistent selection | Automated now |
+| Set or clear selected vehicle | Persists across requests | Automated now |
+| Select another user's vehicle | HTTP 404; selection unchanged | Automated now |
+| Chat context uses selected garage vehicle | Shared vehicle overrides legacy session profile | Automated now |
+| Selected vehicle appears in every chat session | Same account-level selection across sessions | Automated now |
+| Vehicle selection form rejects external redirect | Redirects to local chat route | Automated now |
 | Unsupported HTTP method | HTTP 405 | Automated now |
 | Existing chat authentication/session/upload behavior | Covered by chatbot test module | Automated now |
 
@@ -76,12 +82,15 @@ Use these prompts with S-01 unless stated otherwise. A response is acceptable wh
 1. Register a test account and sign in.
 2. Open a new chat; confirm a session is created.
 3. Save a vehicle profile and confirm it remains visible in that chat.
-4. Send CHAT-01 and verify the answer references the vehicle context when present.
-5. Upload a small JPG/PNG of a vehicle dashboard or component and ask what is visible.
-6. Upload a PDF and confirm the current app rejects it clearly. PDF extraction is not implemented yet.
-7. Send CHAT-05 and verify the automotive-only refusal.
-8. Sign out, sign in as another user, and confirm the first user's chat/garage records are not exposed.
-9. Stop and restart the local server; confirm database-backed sessions and vehicles remain.
+4. Add two vehicles through the garage API, then select one in the chat sidebar.
+5. Open a second chat session and verify the same selected vehicle remains active.
+6. Send CHAT-01 and verify the answer references the selected garage vehicle.
+7. Change the selected vehicle and send another question; verify the new vehicle context is used.
+8. Upload a small JPG/PNG of a vehicle dashboard or component and ask what is visible.
+9. Upload a PDF and confirm the current app rejects it clearly. PDF extraction is not implemented yet.
+10. Send CHAT-05 and verify the automotive-only refusal.
+11. Sign out, sign in as another user, and confirm the first user's chat/garage records are not exposed.
+12. Stop and restart the local server; confirm database-backed sessions and vehicles remain.
 
 ## 6. Planned module acceptance tests — not implemented yet
 
