@@ -24,14 +24,20 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 load_dotenv()
 IS_VERCEL = bool(os.getenv("VERCEL"))
-GROQ_API_KEY = os.getenv("GROQ_API_KEY") or os.getenv("GEMINI_API_KEY")
-GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
-GROQ_VISION_MODEL = os.getenv("GROQ_VISION_MODEL")
-SECRET_KEY = os.getenv("SECRET_KEY", "dev-only-secret-key")
+IS_PRODUCTION = IS_VERCEL or os.getenv("ENVIRONMENT", "development").lower() == "production"
+AIMLAPI_API_KEY = os.getenv("AIMLAPI_API_KEY")
+AIMLAPI_BASE_URL = os.getenv("AIMLAPI_BASE_URL", "https://api.aimlapi.com/v1")
+AIMLAPI_MODEL = os.getenv("AIMLAPI_MODEL", "alibaba/qwen3.7-max")
+AIMLAPI_VISION_MODEL = os.getenv("AIMLAPI_VISION_MODEL")
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    if IS_PRODUCTION:
+        raise ImproperlyConfigured("SECRET_KEY must be configured in production.")
+    SECRET_KEY = "dev-only-secret-key"
 
 # SECURITY WARNING: don't run with debug turned on in production!
 raw_debug = os.getenv("DEBUG")
-if IS_VERCEL:
+if IS_PRODUCTION:
     # Never expose a Django traceback or settings values on a public deployment.
     DEBUG = False
 elif raw_debug is None:
@@ -56,6 +62,15 @@ CSRF_TRUSTED_ORIGINS += [
     if origin.strip()
 ]
 
+if IS_PRODUCTION:
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 31_536_000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "chat"
@@ -113,6 +128,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+MAX_CHAT_UPLOAD_BYTES = int(os.getenv("MAX_CHAT_UPLOAD_BYTES", 10 * 1024 * 1024))
 
 # Database
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
@@ -127,13 +143,14 @@ DATABASE_URL = (
 if DATABASE_URL:
     import dj_database_url
 
-    DATABASES = {
-        "default": dj_database_url.parse(
-            DATABASE_URL,
-            conn_max_age=600,
-            conn_health_checks=True,
-        )
-    }
+    database_config = dj_database_url.parse(
+        DATABASE_URL,
+        conn_max_age=600,
+        conn_health_checks=True,
+    )
+    if IS_VERCEL and database_config["ENGINE"] != "django.db.backends.postgresql":
+        raise ImproperlyConfigured("Vercel requires a persistent PostgreSQL DATABASE_URL.")
+    DATABASES = {"default": database_config}
 elif IS_VERCEL:
     raise ImproperlyConfigured(
         "A persistent Postgres database is required on Vercel. Add DATABASE_URL "
@@ -195,12 +212,4 @@ STORAGES = {
     },
 }
 
-
-# Email
-# https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
-
-MAILERS = {
-    'default': {
-        'BACKEND': 'django.core.mail.backends.console.EmailBackend',
-    },
-}
+# End of settings.

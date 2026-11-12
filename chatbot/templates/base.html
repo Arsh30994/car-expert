@@ -36,7 +36,10 @@
     <div class="topbar-actions">
       {% if user.is_authenticated %}
         <span class="signed-in-user">{{ user.username }}</span>
-        <a href="{% url 'new_session' %}" class="new-session-btn">New session</a>
+        <form method="post" action="{% url 'new_session' %}" class="new-session-form">
+          {% csrf_token %}
+          <button type="submit" class="new-session-btn">New session</button>
+        </form>
         <form method="post" action="{% url 'logout' %}" class="logout-form">
           {% csrf_token %}
           <button type="submit" class="logout-btn">Log out</button>

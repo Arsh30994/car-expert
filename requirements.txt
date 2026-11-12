@@ -1,7 +1,7 @@
 Django>=6.1,<6.2
 djangorestframework>=3.15
 python-dotenv>=1.0
-groq>=1.7
+openai>=1.0
 whitenoise>=6.9
 dj-database-url>=2.3
 psycopg[binary]>=3.2

@@ -131,6 +131,9 @@ document.addEventListener("DOMContentLoaded", () => {
         fileInput.value = "";
         selectedFile.style.display = "none";
 
+        const controller = new AbortController();
+        const timeoutId = window.setTimeout(() => controller.abort(), 30000);
+
         try {
             const response = await fetch(chatForm.action, {
                 method: "POST",
@@ -138,6 +141,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 headers: {
                     "X-CSRFToken": csrfToken(),
                 },
+                signal: controller.signal,
             });
 
             const contentType = response.headers.get("content-type") || "";
@@ -159,12 +163,16 @@ document.addEventListener("DOMContentLoaded", () => {
         } catch (err) {
             typingEl.remove();
             appendAssistantMessage({
-                text: err instanceof Error
+                text: err?.name === "AbortError"
+                    ? "The request took too long. Please try again."
+                    : err instanceof Error
                     ? err.message
                     : "Something went wrong sending that — try again.",
                 finding: null,
             });
             console.error(err);
+        } finally {
+            window.clearTimeout(timeoutId);
         }
     });
 

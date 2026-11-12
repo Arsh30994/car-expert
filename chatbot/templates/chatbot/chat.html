@@ -13,7 +13,10 @@
   </div>
   <div class="sidebar-section" style="flex:1;">
     <h2 class="sidebar-title">Session history</h2>
-    <a href="{% url 'new_session' %}" class="history-new-btn">Add session</a>
+    <form method="post" action="{% url 'new_session' %}" class="new-session-form">
+      {% csrf_token %}
+      <button type="submit" class="history-new-btn">Add session</button>
+    </form>
     {% for s in sessions %}
       <div class="session-item-row {% if s.id == current_session.id %}active{% endif %}">
         <a href="{% url 'session' s.id %}" class="session-item-main">
@@ -85,7 +88,7 @@
           action="{% url 'send_message' current_session.id %}">
       {% csrf_token %}
       <button class="attach-btn" type="button" id="attachBtn">📎</button>
-      <input type="file" name="file" id="fileInput" accept="image/*,video/*,audio/*,.pdf" hidden />
+      <input type="file" name="file" id="fileInput" accept="image/jpeg,image/png,image/webp,image/gif" hidden />
       <textarea rows="1" name="text" placeholder="Describe the issue, or attach a file…" id="messageInput"></textarea>
       <button class="send-btn" type="submit" id="sendBtn">➤</button>
     </form>

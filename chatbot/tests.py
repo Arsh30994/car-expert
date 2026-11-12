@@ -1,9 +1,11 @@
 import os
 import tempfile
 from unittest.mock import patch
+from types import SimpleNamespace
 
 from django.contrib.auth.models import User
 from django.core.management import call_command
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.test.utils import override_settings
 from django.templatetags.static import static
@@ -27,6 +29,27 @@ class ChatAuthTests(TestCase):
         register_response = self.client.get(reverse("register"))
         self.assertEqual(register_response.status_code, 200)
         self.assertContains(register_response, "Create account")
+
+    def test_health_check_reports_database_and_ai_readiness(self):
+        response = self.client.get(reverse("health"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["status"], "ok")
+        self.assertEqual(response.json()["database"], "connected")
+
+    def test_register_creates_an_authenticated_user(self):
+        response = self.client.post(
+            reverse("register"),
+            {
+                "username": "new-driver",
+                "password1": "safe-test-password-123",
+                "password2": "safe-test-password-123",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(User.objects.filter(username="new-driver").exists())
+        self.assertIn("_auth_user_id", self.client.session)
 
     def test_static_css_is_resolved_from_the_expected_app_path(self):
         from django.contrib.staticfiles import finders
@@ -110,6 +133,17 @@ class ChatAuthTests(TestCase):
         self.assertEqual(delete_response.status_code, 302)
         self.assertFalse(ChatSession.objects.filter(id=session.id).exists())
 
+    def test_new_session_requires_post_and_creates_only_on_post(self):
+        self.client.force_login(self.user)
+
+        get_response = self.client.get(reverse("new_session"))
+        self.assertEqual(get_response.status_code, 405)
+        self.assertFalse(ChatSession.objects.filter(user=self.user).exists())
+
+        post_response = self.client.post(reverse("new_session"))
+        self.assertEqual(post_response.status_code, 302)
+        self.assertEqual(ChatSession.objects.filter(user=self.user).count(), 1)
+
     @patch("chatbot.views.get_response", return_value=("Check the brake pads.", None))
     @patch("chatbot.views.is_car_related", return_value=True)
     def test_send_message_stores_user_and_assistant_messages(
@@ -152,3 +186,57 @@ class ChatAuthTests(TestCase):
         self.assertEqual(response.status_code, 500)
         self.assertEqual(response["Content-Type"], "application/json")
         self.assertIn("couldn't process", response.json()["text"])
+
+    def test_send_message_rejects_unsupported_uploads(self):
+        self.client.force_login(self.user)
+        session = ChatSession.objects.create(user=self.user, title="Files")
+        VehicleProfile.objects.create(session=session)
+        document = SimpleUploadedFile("invoice.pdf", b"%PDF-1.4", content_type="application/pdf")
+
+        response = self.client.post(
+            reverse("send_message", args=[session.id]),
+            {"file": document},
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Only JPG", response.json()["text"])
+        self.assertFalse(Message.objects.filter(session=session).exists())
+
+
+class AimlApiClientTests(TestCase):
+    def test_insufficient_credits_message_is_actionable(self):
+        from .gemini_client import _provider_error_message
+
+        error = type(
+            "ProviderError",
+            (Exception,),
+            {"status_code": 403},
+        )("You've run out of funds.")
+
+        self.assertIn("no remaining credits", _provider_error_message(error))
+
+    @patch("chatbot.gemini_client.client", None)
+    def test_missing_aimlapi_configuration_returns_an_actionable_message(self):
+        from .gemini_client import get_response
+
+        text, finding = get_response("My car is not starting")
+
+        self.assertIn("AI/ML API is not configured", text)
+        self.assertIsNone(finding)
+
+    @patch("chatbot.gemini_client.client")
+    @override_settings(AIMLAPI_MODEL="text-model", AIMLAPI_VISION_MODEL="vision-model")
+    def test_non_image_attachment_uses_the_text_classifier(self, client):
+        result = SimpleNamespace(
+            choices=[SimpleNamespace(message=SimpleNamespace(content="YES"))]
+        )
+        client.chat.completions.create.return_value = result
+
+        with tempfile.NamedTemporaryFile(suffix=".pdf") as document:
+            from .gemini_client import is_car_related
+
+            self.assertTrue(is_car_related("Please check this invoice", document.name))
+
+        request = client.chat.completions.create.call_args.kwargs
+        self.assertEqual(request["model"], "text-model")
+        self.assertIsInstance(request["messages"][0]["content"], str)

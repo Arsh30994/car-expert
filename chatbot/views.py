@@ -1,19 +1,41 @@
 import os
 import tempfile
 import logging
+from pathlib import Path
 
+from django.conf import settings
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
+from django.db import DatabaseError, connection
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from django.views.decorators.http import require_http_methods, require_POST
+from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from .gemini_client import get_response, is_car_related
 from .models import ChatSession, Message, VehicleProfile
 
 
 logger = logging.getLogger(__name__)
+
+SUPPORTED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
+
+
+@require_GET
+def health_check(request):
+    try:
+        connection.ensure_connection()
+    except DatabaseError:
+        logger.exception("Database health check failed.")
+        return JsonResponse({"status": "unavailable", "database": "unavailable"}, status=503)
+
+    return JsonResponse(
+        {
+            "status": "ok",
+            "database": "connected",
+            "ai_provider": "configured" if settings.AIMLAPI_API_KEY else "not_configured",
+        }
+    )
 
 
 def _browser_key(request):
@@ -93,6 +115,16 @@ def save_upload(uploaded_file):
     return temp.name
 
 
+def _upload_error(uploaded_file):
+    extension = Path(uploaded_file.name).suffix.lower()
+    if extension not in SUPPORTED_IMAGE_EXTENSIONS:
+        return "Only JPG, PNG, WebP, and GIF images are supported right now."
+    if uploaded_file.size > settings.MAX_CHAT_UPLOAD_BYTES:
+        max_mb = settings.MAX_CHAT_UPLOAD_BYTES // (1024 * 1024)
+        return f"Images must be {max_mb} MB or smaller."
+    return None
+
+
 @require_http_methods(["GET", "POST"])
 def register_view(request):
     if request.user.is_authenticated:
@@ -126,6 +158,7 @@ def session_view(request, session_id):
 
 
 @login_required
+@require_POST
 def new_session(request):
     key = _browser_key(request)
     session = ChatSession.objects.create(
@@ -200,6 +233,11 @@ def send_message(request, session_id):
             {"text": "Type a message or attach a file to continue.", "finding": None},
             status=400,
         )
+
+    if uploaded_file:
+        error = _upload_error(uploaded_file)
+        if error:
+            return JsonResponse({"text": error, "finding": None}, status=400)
 
     try:
         if uploaded_file:
