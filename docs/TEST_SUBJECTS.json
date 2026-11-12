@@ -1,0 +1,68 @@
+[
+  {
+    "id": "S-01",
+    "user": "driver_a",
+    "vehicle": {
+      "make": "Toyota",
+      "model": "Corolla",
+      "year": 2022,
+      "variant": "synthetic test profile",
+      "fuel_type": "Petrol",
+      "transmission": "Automatic",
+      "mileage_km": 18500,
+      "vin": ""
+    }
+  },
+  {
+    "id": "S-02",
+    "user": "driver_a",
+    "vehicle": {
+      "make": "Maruti Suzuki",
+      "model": "Swift",
+      "year": 2020,
+      "fuel_type": "Petrol",
+      "transmission": "Manual",
+      "mileage_km": 42000,
+      "vin": ""
+    }
+  },
+  {
+    "id": "S-03",
+    "user": "driver_b",
+    "vehicle": {
+      "make": "Tata",
+      "model": "Nexon",
+      "year": 2023,
+      "fuel_type": "Electric",
+      "transmission": "Automatic",
+      "mileage_km": 9000,
+      "vin": ""
+    }
+  },
+  {
+    "id": "S-04",
+    "user": "driver_a",
+    "vehicle": {
+      "make": "Honda",
+      "model": "City",
+      "year": 2018,
+      "fuel_type": "Diesel",
+      "transmission": "Manual",
+      "mileage_km": 86000,
+      "vin": ""
+    }
+  },
+  {
+    "id": "S-05",
+    "user": "driver_b",
+    "vehicle": {
+      "make": "Hyundai",
+      "model": "Creta",
+      "year": 2024,
+      "fuel_type": "Petrol",
+      "transmission": "Automatic",
+      "mileage_km": 4500,
+      "vin": ""
+    }
+  }
+]
