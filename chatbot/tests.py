@@ -332,4 +332,5 @@ class SharedGarageChatContextTests(TestCase):
         )
         self.assertEqual(response.status_code, 400)
         self.assertIn("year", response.json()["errors"])
-        self.assertFalse(Vehicle.objects.filter(user=self.user).exists())
+        self.assertEqual(Vehicle.objects.filter(user=self.user).count(), 1)
+        self.assertFalse(Vehicle.objects.filter(user=self.user, make="Toyota").exists())
