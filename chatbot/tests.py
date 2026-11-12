@@ -294,3 +294,11 @@ class SharedGarageChatContextTests(TestCase):
             {"vehicle_id": foreign_vehicle.id, "next": reverse("session", args=[session.id])},
         )
         self.assertEqual(response.status_code, 400)
+
+    def test_vehicle_selection_rejects_external_redirect_targets(self):
+        response = self.client.post(
+            reverse("select_garage_vehicle"),
+            {"vehicle_id": self.vehicle.id, "next": "https://attacker.example/phishing"},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["Location"], reverse("chat"))
