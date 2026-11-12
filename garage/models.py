@@ -33,8 +33,27 @@ class Vehicle(models.Model):
             parts.append(self.fuel_type)
         if self.transmission:
             parts.append(self.transmission)
-        parts.append(f"{self.mileage_km} km")
+        if self.mileage_km:
+            parts.append(f"{self.mileage_km} km")
+        if self.vin:
+            parts.append(f"VIN {self.vin}")
         return ", ".join(parts)
 
     def __str__(self):
         return self.display_name
+
+
+class GarageSelection(models.Model):
+    """The single account-wide vehicle context shared by all platform modules."""
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="garage_selection")
+    selected_vehicle = models.ForeignKey(
+        Vehicle,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="selected_by_users",
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.user_id}: {self.selected_vehicle_id or 'no vehicle selected'}"
