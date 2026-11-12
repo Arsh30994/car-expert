@@ -240,3 +240,57 @@ class AimlApiClientTests(TestCase):
         request = client.chat.completions.create.call_args.kwargs
         self.assertEqual(request["model"], "text-model")
         self.assertIsInstance(request["messages"][0]["content"], str)
+
+
+class SharedGarageChatContextTests(TestCase):
+    def setUp(self):
+        from garage.models import GarageSelection, Vehicle
+
+        self.user = User.objects.create_user(username="garage-driver", password="test-pass-123")
+        self.vehicle = Vehicle.objects.create(
+            user=self.user, make="Tata", model="Nexon EV", year=2023,
+            fuel_type="Electric", transmission="Automatic", mileage_km=12500,
+        )
+        GarageSelection.objects.create(user=self.user, selected_vehicle=self.vehicle)
+        self.client.force_login(self.user)
+
+    @patch("chatbot.views.get_response", return_value=("Battery health depends on diagnostics.", None))
+    @patch("chatbot.views.is_car_related", return_value=True)
+    def test_chatbot_receives_account_selected_vehicle_context(self, _classifier, response_generator):
+        session = ChatSession.objects.create(user=self.user, title="Battery question")
+        VehicleProfile.objects.create(session=session, make="Old", model="Session profile", year=2001)
+
+        response = self.client.post(
+            reverse("send_message", args=[session.id]),
+            {"text": "How should I maintain the battery?"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        context = response_generator.call_args.args[2]
+        self.assertIn("2023 Tata Nexon EV", context)
+        self.assertIn("Electric", context)
+        self.assertNotIn("Old Session profile", context)
+
+    def test_selected_vehicle_is_visible_in_every_chat_session(self):
+        first = ChatSession.objects.create(user=self.user, title="First")
+        second = ChatSession.objects.create(user=self.user, title="Second")
+        VehicleProfile.objects.create(session=first)
+        VehicleProfile.objects.create(session=second)
+
+        first_response = self.client.get(reverse("session", args=[first.id]))
+        second_response = self.client.get(reverse("session", args=[second.id]))
+
+        self.assertContains(first_response, "2023 Tata Nexon EV")
+        self.assertContains(second_response, "2023 Tata Nexon EV")
+
+    def test_user_cannot_select_a_vehicle_owned_by_another_user(self):
+        from garage.models import Vehicle
+
+        other = User.objects.create_user(username="foreign-driver", password="test-pass-123")
+        foreign_vehicle = Vehicle.objects.create(user=other, make="Tesla", model="Model 3", year=2024)
+        session = ChatSession.objects.create(user=self.user, title="Current")
+        response = self.client.post(
+            reverse("select_garage_vehicle"),
+            {"vehicle_id": foreign_vehicle.id, "next": reverse("session", args=[session.id])},
+        )
+        self.assertEqual(response.status_code, 400)
