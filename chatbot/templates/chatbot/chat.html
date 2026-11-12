@@ -25,6 +25,26 @@
       </select>
       <button type="submit" class="spec-edit-btn">Save selected vehicle</button>
     </form>
+    <details class="garage-add-form">
+      <summary>Add a vehicle to your garage</summary>
+      <form method="post" action="{% url 'add_garage_vehicle' %}">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{% url 'session' current_session.id %}">
+        <label for="garageMake">Make</label>
+        <input id="garageMake" name="make" maxlength="80" placeholder="e.g. Tata" required>
+        <label for="garageModel">Model</label>
+        <input id="garageModel" name="model" maxlength="80" placeholder="e.g. Nexon" required>
+        <label for="garageYear">Year</label>
+        <input id="garageYear" name="year" type="number" min="1886" max="2028" placeholder="e.g. 2023" required>
+        <label for="garageFuel">Fuel type</label>
+        <input id="garageFuel" name="fuel_type" maxlength="40" placeholder="Petrol / Diesel / Electric">
+        <label for="garageTransmission">Transmission</label>
+        <input id="garageTransmission" name="transmission" maxlength="40" placeholder="Manual / Automatic">
+        <label for="garageMileage">Mileage (km)</label>
+        <input id="garageMileage" name="mileage_km" type="number" min="0" value="0">
+        <button type="submit" class="spec-edit-btn">Add and select vehicle</button>
+      </form>
+    </details>
     <a class="spec-edit-btn" href="{% url 'edit_vehicle' %}">Edit legacy session profile</a>
   </div>
   <div class="sidebar-section" style="flex:1;">
