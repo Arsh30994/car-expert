@@ -23,4 +23,5 @@ urlpatterns = [
     path("session/<int:session_id>/delete/", views.delete_session, name="delete_session"),
     path("vehicle/edit/", views.edit_vehicle, name="edit_vehicle"),
     path("vehicle/select/", views.select_garage_vehicle, name="select_garage_vehicle"),
+    path("vehicle/add/", views.add_garage_vehicle, name="add_garage_vehicle"),
 ]
