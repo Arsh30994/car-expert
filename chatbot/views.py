@@ -16,6 +16,7 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 
 from .gemini_client import get_response, is_car_related
 from garage.models import GarageSelection, Vehicle
+from garage.serializers import VehicleSerializer
 
 from .models import ChatSession, Message, VehicleProfile
 
@@ -320,6 +321,26 @@ def select_garage_vehicle(request):
         except (ValueError, TypeError, Vehicle.DoesNotExist):
             return JsonResponse({"error": "Choose a vehicle from your own garage."}, status=400)
         selection.selected_vehicle = vehicle
+    selection.save(update_fields=["selected_vehicle", "updated_at"])
+    next_url = request.POST.get("next")
+    if not next_url or not url_has_allowed_host_and_scheme(
+        next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        next_url = reverse("chat")
+    return redirect(next_url)
+
+
+@login_required
+@require_POST
+def add_garage_vehicle(request):
+    serializer = VehicleSerializer(data=request.POST)
+    if not serializer.is_valid():
+        return JsonResponse({"errors": serializer.errors}, status=400)
+    vehicle = serializer.save(user=request.user)
+    selection, _ = GarageSelection.objects.get_or_create(user=request.user)
+    selection.selected_vehicle = vehicle
     selection.save(update_fields=["selected_vehicle", "updated_at"])
     next_url = request.POST.get("next")
     if not next_url or not url_has_allowed_host_and_scheme(
