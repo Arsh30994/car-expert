@@ -1,3 +1,4 @@
+import re
 from datetime import date
 
 from rest_framework import serializers
@@ -16,6 +17,14 @@ class VehicleSerializer(serializers.ModelSerializer):
     def validate_year(self, value):
         if value < 1886 or value > date.today().year + 2:
             raise serializers.ValidationError("Enter a plausible vehicle year.")
+        return value
+
+    def validate_vin(self, value):
+        value = value.strip().upper()
+        if value and not re.fullmatch(r"[A-HJ-NPR-Z0-9]{17}", value):
+            raise serializers.ValidationError(
+                "VIN must contain exactly 17 characters and cannot contain I, O, or Q."
+            )
         return value
 
     def validate_make(self, value):
