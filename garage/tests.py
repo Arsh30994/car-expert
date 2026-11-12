@@ -76,3 +76,98 @@ class VehicleGarageApiTests(TestCase):
         response = self.client.get(reverse("garage:vehicle-list"))
 
         self.assertEqual(response.status_code, 302)
+
+    def test_list_only_returns_the_current_users_vehicles(self):
+        other = User.objects.create_user(username="another-driver", password="safe-password-123")
+        own_vehicle = Vehicle.objects.create(user=self.user, make="Maruti Suzuki", model="Swift", year=2020)
+        Vehicle.objects.create(user=other, make="Hyundai", model="i20", year=2022)
+
+        response = self.client.get(reverse("garage:vehicle-list"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual([item["id"] for item in response.json()["results"]], [own_vehicle.id])
+
+    def test_owner_can_retrieve_vehicle_detail(self):
+        vehicle = Vehicle.objects.create(user=self.user, make="Tata", model="Nexon", year=2023)
+
+        response = self.client.get(reverse("garage:vehicle-detail", args=[vehicle.id]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["display_name"], "2023 Tata Nexon")
+
+    def test_owner_can_delete_vehicle(self):
+        vehicle = Vehicle.objects.create(user=self.user, make="Honda", model="City", year=2021)
+
+        response = self.client.delete(reverse("garage:vehicle-detail", args=[vehicle.id]))
+
+        self.assertEqual(response.status_code, 204)
+        self.assertFalse(Vehicle.objects.filter(pk=vehicle.id).exists())
+
+    def test_patch_cannot_transfer_vehicle_ownership(self):
+        other = User.objects.create_user(username="third-driver", password="safe-password-123")
+        vehicle = Vehicle.objects.create(user=self.user, make="Toyota", model="Innova", year=2020)
+
+        response = self.client.patch(
+            reverse("garage:vehicle-detail", args=[vehicle.id]),
+            data=json.dumps({"user": other.id, "mileage_km": 50000}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        vehicle.refresh_from_db()
+        self.assertEqual(vehicle.user_id, self.user.id)
+
+    def test_malformed_json_is_rejected(self):
+        response = self.client.post(
+            reverse("garage:vehicle-list"),
+            data="{not-json",
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("body", response.json()["errors"])
+
+    def test_vehicle_creation_rejects_missing_required_fields(self):
+        response = self.client.post(
+            reverse("garage:vehicle-list"),
+            data=json.dumps({"make": "Toyota"}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("model", response.json()["errors"])
+        self.assertIn("year", response.json()["errors"])
+
+    def test_vehicle_creation_rejects_future_year_outside_allowed_range(self):
+        response = self.client.post(
+            reverse("garage:vehicle-list"),
+            data=json.dumps({"make": "Toyota", "model": "Supra", "year": 2201}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("year", response.json()["errors"])
+
+    def test_vehicle_creation_rejects_invalid_vin_length(self):
+        response = self.client.post(
+            reverse("garage:vehicle-list"),
+            data=json.dumps({"make": "Toyota", "model": "Camry", "year": 2022, "vin": "TOO-SHORT"}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("vin", response.json()["errors"])
+
+    def test_vehicle_detail_returns_404_for_unknown_id(self):
+        response = self.client.get(reverse("garage:vehicle-detail", args=[999999]))
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_list_endpoint_rejects_put(self):
+        response = self.client.put(
+            reverse("garage:vehicle-list"),
+            data=json.dumps({"make": "Toyota", "model": "Yaris", "year": 2021}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 405)
