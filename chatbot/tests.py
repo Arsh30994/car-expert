@@ -302,3 +302,34 @@ class SharedGarageChatContextTests(TestCase):
         )
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response["Location"], reverse("chat"))
+
+    def test_user_can_add_vehicle_from_chat_and_it_becomes_selected(self):
+        from garage.models import GarageSelection, Vehicle
+
+        session = ChatSession.objects.create(user=self.user, title="Garage")
+        response = self.client.post(
+            reverse("add_garage_vehicle"),
+            {
+                "make": "Maruti Suzuki",
+                "model": "Swift",
+                "year": "2020",
+                "fuel_type": "Petrol",
+                "transmission": "Manual",
+                "mileage_km": "42000",
+                "next": reverse("session", args=[session.id]),
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        vehicle = Vehicle.objects.get(user=self.user, make="Maruti Suzuki")
+        self.assertEqual(GarageSelection.objects.get(user=self.user).selected_vehicle, vehicle)
+
+    def test_add_vehicle_form_rejects_invalid_year(self):
+        from garage.models import Vehicle
+
+        response = self.client.post(
+            reverse("add_garage_vehicle"),
+            {"make": "Toyota", "model": "Corolla", "year": "1800"},
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("year", response.json()["errors"])
+        self.assertFalse(Vehicle.objects.filter(user=self.user).exists())
