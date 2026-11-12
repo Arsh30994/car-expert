@@ -48,7 +48,7 @@ class VehicleGarageApiTests(TestCase):
     def test_vehicle_creation_rejects_invalid_year_and_empty_make(self):
         response = self.client.post(
             reverse("garage:vehicle-list"),
-            data=json.dumps({"make": " ", "model": "Civic", "year": 1890}),
+            data=json.dumps({"make": " ", "model": "Civic", "year": 1800}),
             content_type="application/json",
         )
 
