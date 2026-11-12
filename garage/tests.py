@@ -139,7 +139,8 @@ class SharedVehicleSelectionTests(TestCase):
         foreign_vehicle = Vehicle.objects.create(user=other, make="Tesla", model="Model 3", year=2023)
         response = self.client.patch(reverse("garage:vehicle-selection"), data=json.dumps({"vehicle_id": foreign_vehicle.id}), content_type="application/json")
         self.assertEqual(response.status_code, 404)
-        self.assertFalse(GarageSelection.objects.filter(user=self.user).exists())
+        selection = GarageSelection.objects.get(user=self.user)
+        self.assertIsNone(selection.selected_vehicle)
 
     def test_user_can_clear_the_selected_vehicle(self):
         GarageSelection.objects.create(user=self.user, selected_vehicle=self.vehicle)
