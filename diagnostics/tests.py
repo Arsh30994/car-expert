@@ -2,6 +2,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 
 from garage.models import Vehicle
+from chatbot.models import ChatSession
 from .models import DiagnosticReport
 from .schema import DiagnosticPayloadError, validate_diagnostic_payload
 from .services import persist_diagnostic_report
@@ -91,3 +92,26 @@ class DiagnosticReportPersistenceTests(TestCase):
         self.assertEqual(report.created_by, owner)
         self.assertEqual(report.vehicle, vehicle)
         self.assertEqual(report.report_data["urgency"], "high")
+
+    def test_report_can_be_linked_to_the_chat_session_for_the_same_vehicle(self):
+        owner = User.objects.create_user(username="session-owner", password="test-pass-123")
+        vehicle = Vehicle.objects.create(user=owner, make="Hyundai", model="i20", year=2022)
+        session = ChatSession.objects.create(user=owner, garage_vehicle=vehicle, title="Cooling issue")
+        report = persist_diagnostic_report(
+            user=owner, vehicle=vehicle, chat_session=session,
+            title="Cooling system inspection",
+            payload=DiagnosticSchemaTests().valid_payload(),
+        )
+        self.assertEqual(report.chat_session, session)
+
+    def test_report_rejects_chat_session_for_a_different_vehicle(self):
+        owner = User.objects.create_user(username="session-owner-two", password="test-pass-123")
+        first = Vehicle.objects.create(user=owner, make="Hyundai", model="i20", year=2022)
+        second = Vehicle.objects.create(user=owner, make="Honda", model="City", year=2021)
+        session = ChatSession.objects.create(user=owner, garage_vehicle=first, title="First car")
+        with self.assertRaises(ValueError):
+            persist_diagnostic_report(
+                user=owner, vehicle=second, chat_session=session,
+                title="Wrong vehicle report",
+                payload=DiagnosticSchemaTests().valid_payload(),
+            )
