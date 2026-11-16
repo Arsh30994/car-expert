@@ -146,7 +146,7 @@ def register_view(request):
     if request.method == "POST" and form.is_valid():
         user = form.save()
         login(request, user)
-        return redirect("chat")
+        return redirect("dashboard")
 
     return render(request, "chatbot/register.html", {"form": form})
 
