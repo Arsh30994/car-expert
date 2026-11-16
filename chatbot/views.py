@@ -18,7 +18,7 @@ from .gemini_client import get_response, is_car_related
 from garage.models import GarageSelection, Vehicle
 from garage.serializers import VehicleSerializer
 from diagnostics.models import DiagnosticReport
-from garage.models import MaintenanceTask
+from garage.models import MaintenanceTask, ServiceRecord
 
 from .models import ChatSession, Message, VehicleProfile
 
@@ -169,6 +169,54 @@ def dashboard_view(request):
         "report_count": reports.count(),
         "task_count": tasks.count(),
     })
+
+
+def _garage_context(user):
+    selection, _ = GarageSelection.objects.get_or_create(user=user)
+    vehicles = Vehicle.objects.filter(user=user)
+    return {"garage_vehicles": vehicles, "selected_vehicle": selection.selected_vehicle}
+
+
+@login_required
+def garage_view(request):
+    context = _garage_context(request.user)
+    selected = context["selected_vehicle"]
+    context.update({
+        "service_records": ServiceRecord.objects.filter(vehicle__user=request.user)[:8],
+        "selected_service_records": selected.service_records.all()[:5] if selected else [],
+    })
+    return render(request, "chatbot/garage.html", context)
+
+
+@login_required
+def diagnostics_view(request):
+    context = _garage_context(request.user)
+    context["diagnostic_reports"] = DiagnosticReport.objects.filter(
+        vehicle__user=request.user
+    ).select_related("vehicle")
+    return render(request, "chatbot/diagnostics.html", context)
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def maintenance_view(request):
+    context = _garage_context(request.user)
+    if request.method == "POST":
+        vehicle = context["selected_vehicle"]
+        title = (request.POST.get("title") or "").strip()[:160]
+        if not vehicle or not title:
+            return JsonResponse({"error": "Choose an active vehicle and enter a task title."}, status=400)
+        MaintenanceTask.objects.create(
+            vehicle=vehicle,
+            title=title,
+            description=(request.POST.get("description") or "").strip(),
+            priority=request.POST.get("priority") if request.POST.get("priority") in {"low", "medium", "high", "critical"} else "medium",
+            due_odometer_km=_parse_int(request.POST.get("due_odometer_km")),
+            source="Manual maintenance plan",
+        )
+        return redirect("maintenance")
+    context["maintenance_tasks"] = MaintenanceTask.objects.filter(vehicle__user=request.user).select_related("vehicle")
+    return render(request, "chatbot/maintenance.html", context)
 
 
 @login_required

@@ -7,6 +7,9 @@ urlpatterns = [
     path("health/", views.health_check, name="health"),
     path("", views.chat_view, name="chat"),
     path("dashboard/", views.dashboard_view, name="dashboard"),
+    path("garage/", views.garage_view, name="garage"),
+    path("diagnostics/", views.diagnostics_view, name="diagnostics"),
+    path("maintenance/", views.maintenance_view, name="maintenance"),
     path(
         "accounts/login/",
         auth_views.LoginView.as_view(

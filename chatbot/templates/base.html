@@ -17,42 +17,25 @@
     {% if user.is_authenticated %}
     <nav class="cockpit-nav" aria-label="Main navigation">
       <a href="{% url 'dashboard' %}">Overview</a>
-      <a href="{% url 'dashboard' %}#garage">Garage</a>
-      <a href="{% url 'dashboard' %}#diagnostics">Diagnostics</a>
-      <a href="{% url 'dashboard' %}#maintenance">Maintenance</a>
-      <a href="{% url 'chat' %}">AI Chat</a>
+      <a href="{% url 'garage' %}">Garage</a>
+      <a href="{% url 'diagnostics' %}">Diagnostics</a>
+      <a href="{% url 'maintenance' %}">Maintenance</a>
+      <a href="{% url 'chat' %}">Assistant</a>
     </nav>
     {% endif %}
     <div class="topbar-meta">
       {% if user.is_authenticated %}
-        <span>
-          {% if selected_vehicle %}
-            {{ selected_vehicle.display_name }}
-          {% elif vehicle.year or vehicle.make or vehicle.model %}
-            {{ vehicle.year }} {{ vehicle.make }} {{ vehicle.model }}
-          {% else %}
-            No vehicle selected
-          {% endif %}
-        </span>
-        <div class="divider"></div>
-        {% if selected_vehicle and selected_vehicle.vin %}
-          <span class="data">VIN {{ selected_vehicle.vin|slice:":3" }}···{{ selected_vehicle.vin|slice:"-4:" }}</span>
-        {% elif vehicle.vin %}
-          <span class="data">VIN {{ vehicle.vin|slice:":3" }}···{{ vehicle.vin|slice:"-4:" }}</span>
-        {% else %}
-          <span class="data">VEHICLE CONTEXT</span>
-        {% endif %}
+        <a class="vehicle-context-link" href="{% url 'garage' %}">
+          <span class="context-label">ACTIVE VEHICLE</span>
+          <strong>{% if selected_vehicle %}{{ selected_vehicle.display_name }}{% else %}Choose a vehicle{% endif %}</strong>
+        </a>
       {% else %}
         <span>Sign in to save vehicle profiles and chat history</span>
       {% endif %}
     </div>
     <div class="topbar-actions">
       {% if user.is_authenticated %}
-        <span class="signed-in-user">{{ user.username }}</span>
-        <form method="post" action="{% url 'new_session' %}" class="new-session-form">
-          {% csrf_token %}
-          <button type="submit" class="new-session-btn">New session</button>
-        </form>
+        <span class="user-avatar" title="{{ user.username }}" aria-label="Signed in as {{ user.username }}">{{ user.username|slice:":2"|upper }}</span>
         <form method="post" action="{% url 'logout' %}" class="logout-form">
           {% csrf_token %}
           <button type="submit" class="logout-btn">Log out</button>

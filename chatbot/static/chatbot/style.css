@@ -1510,6 +1510,35 @@ html, body { overflow-x: clip; }
     .topbar-meta { display: none; }
     .cockpit-nav { margin-left: auto; gap: 14px; }
 }
+
+/* Dedicated workflow pages */
+.vehicle-context-link { display: grid; gap: 2px; color: var(--text); text-decoration: none; }
+.context-label { color: var(--muted); font: 9px "JetBrains Mono", monospace; letter-spacing: .1em; }
+.vehicle-context-link strong { font-size: 12px; }
+.user-avatar { display: grid; width: 34px; height: 34px; place-items: center; border: 1px solid rgba(227,167,59,.55); border-radius: 50%; background: rgba(227,167,59,.14); color: var(--amber); font: 700 11px "JetBrains Mono", monospace; }
+.detail-page { min-height: calc(100vh - 70px); }
+.page-heading { max-width: 900px; margin: 4px auto 30px; }
+.page-heading h1 { margin: 4px 0 10px; font-size: clamp(30px,4vw,46px); letter-spacing: -.04em; }
+.page-heading>p:not(.eyebrow) { max-width: 650px; color: var(--muted); line-height: 1.6; }
+.page-heading .primary-action { margin-top: 18px; }
+.vehicle-specs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 18px 0; }
+.vehicle-specs div { padding-top: 10px; border-top: 1px solid var(--border); }
+.vehicle-specs dt { color: var(--muted); font-size: 10px; text-transform: uppercase; }
+.vehicle-specs dd { margin: 4px 0 0; font-size: 12px; }
+.systems-panel { margin-top: 24px; }
+.system-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; }
+.system-grid article,.report-card { padding: 18px; border: 1px solid var(--border); border-radius: 9px; background: rgba(20,23,29,.72); }
+.system-grid h3,.report-card h2 { margin: 0 0 8px; font-size: 15px; }
+.system-grid p,.report-card p { color: var(--muted); font-size: 12px; line-height: 1.6; }
+.report-list { display: grid; gap: 12px; max-width: 980px; margin: 0 auto; }
+.report-card { display: flex; justify-content: space-between; gap: 20px; border-left: 3px solid var(--teal); }
+.report-card.urgency-high { border-left-color: var(--amber); }
+.report-card.urgency-critical { border-left-color: var(--red); }
+.task-form form { display: grid; gap: 12px; margin-top: 16px; }
+.task-form label { display: grid; gap: 6px; color: var(--muted); font-size: 11px; }
+.task-form input,.task-form select,.task-form textarea { width: 100%; border: 1px solid var(--border); border-radius: 7px; background: #15181E; color: var(--text); padding: 10px; }
+.task-form textarea { resize: vertical; }
+@media (max-width: 720px) { .system-grid { grid-template-columns: 1fr; } .report-card { flex-direction: column; } .topbar-meta { display: none; } }
 @media (max-width: 900px) {
     .cockpit-nav { margin-left: auto; }
     .topbar-meta { display: none; }

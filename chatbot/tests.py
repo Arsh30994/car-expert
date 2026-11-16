@@ -12,7 +12,7 @@ from django.templatetags.static import static
 from django.urls import reverse
 
 from .models import ChatSession, Message, VehicleProfile
-from garage.models import GarageSelection, Vehicle
+from garage.models import GarageSelection, MaintenanceTask, Vehicle
 
 
 class ChatAuthTests(TestCase):
@@ -421,6 +421,47 @@ class VehicleCentricDashboardTests(TestCase):
     def test_dashboard_requires_authentication(self):
         self.client.logout()
         self.assertEqual(self.client.get(reverse("dashboard")).status_code, 302)
+
+
+class DedicatedWorkflowPageTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="workflow-driver", password="test-pass-123")
+        self.vehicle = Vehicle.objects.create(user=self.user, make="Toyota", model="Camry", year=2022)
+        GarageSelection.objects.create(user=self.user, selected_vehicle=self.vehicle)
+        self.client.force_login(self.user)
+
+    def test_dedicated_workflow_pages_render(self):
+        for route in ("garage", "diagnostics", "maintenance"):
+            response = self.client.get(reverse(route))
+            self.assertEqual(response.status_code, 200)
+
+    def test_maintenance_page_creates_a_task_for_the_active_vehicle(self):
+        response = self.client.post(
+            reverse("maintenance"),
+            {"title": "Inspect brake pads", "priority": "high", "due_odometer_km": "40000"},
+        )
+        self.assertEqual(response.status_code, 302)
+        task = MaintenanceTask.objects.get(vehicle=self.vehicle)
+        self.assertEqual(task.title, "Inspect brake pads")
+        self.assertEqual(task.priority, "high")
+
+    def test_maintenance_creation_handles_six_vehicle_datasets(self):
+        datasets = [
+            ("Hyundai", "i20", 2022), ("Tata", "Nexon EV", 2023),
+            ("Honda", "City", 2021), ("Mahindra", "Thar", 2024),
+            ("Maruti Suzuki", "Swift", 2020), ("Toyota", "Fortuner", 2023),
+        ]
+        selection = GarageSelection.objects.get(user=self.user)
+        for index, (make, model, year) in enumerate(datasets, start=1):
+            vehicle = Vehicle.objects.create(user=self.user, make=make, model=model, year=year)
+            selection.selected_vehicle = vehicle
+            selection.save(update_fields=["selected_vehicle", "updated_at"])
+            response = self.client.post(
+                reverse("maintenance"),
+                {"title": f"Dataset {index} inspection", "priority": "medium"},
+            )
+            self.assertEqual(response.status_code, 302)
+            self.assertTrue(MaintenanceTask.objects.filter(vehicle=vehicle, title=f"Dataset {index} inspection").exists())
 
 
 class VehicleProfilePrivacyTests(TestCase):
