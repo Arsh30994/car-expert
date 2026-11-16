@@ -1,6 +1,6 @@
 from django.test import SimpleTestCase
 
-from marketplace.services import calculate_emi, rank_cars
+from django.contrib.auth.models import User\nfrom django.urls import reverse\n\nfrom marketplace.services import calculate_emi, rank_cars
 
 
 class RecommendationEngineTests(SimpleTestCase):
@@ -53,3 +53,16 @@ class FinanceCalculatorTests(SimpleTestCase):
             calculate_emi(principal=100000, annual_interest_rate=-1, tenure_months=60)
         with self.assertRaises(ValueError):
             calculate_emi(principal=100000, annual_interest_rate=9, tenure_months=0)
+
+
+class MarketplaceViewTests(__import__("django.test", fromlist=["TestCase"]).TestCase):
+    def test_discovery_page_requires_authentication(self):
+        response = self.client.get(reverse("discover"))
+        self.assertEqual(response.status_code, 302)
+
+    def test_authenticated_user_can_open_discovery_page(self):
+        user = User.objects.create_user(username="buyer", password="safe-pass-123")
+        self.client.force_login(user)
+        response = self.client.get(reverse("discover"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Find the right car for your life.")
