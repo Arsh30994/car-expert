@@ -66,6 +66,10 @@ def validate_diagnostic_payload(payload):
         if not isinstance(payload[field], list) or not all(isinstance(item, str) for item in payload[field]):
             raise DiagnosticPayloadError(f"{field} must be a list of strings.")
 
+    for field in ("observations", "possible_causes"):
+        if not isinstance(payload[field], list):
+            raise DiagnosticPayloadError(f"{field} must be a list.")
+
     for item in payload["observations"]:
         if not isinstance(item, dict):
             raise DiagnosticPayloadError("Each observation must be an object.")
@@ -75,7 +79,7 @@ def validate_diagnostic_payload(payload):
             raise DiagnosticPayloadError("Observation source is not supported.")
         if item["confidence"] not in ("low", "medium", "high"):
             raise DiagnosticPayloadError("Observation confidence must be low, medium or high.")
-        if not all(isinstance(item[key], str) for key in ("finding", "evidence")):
+        if not all(isinstance(item[key], str) and item[key].strip() for key in ("finding", "evidence")):
             raise DiagnosticPayloadError("Observation finding and evidence must be strings.")
 
     for item in payload["possible_causes"]:
@@ -84,6 +88,8 @@ def validate_diagnostic_payload(payload):
         required_cause = ("cause", "likelihood", "supporting_evidence", "contradicting_evidence")
         if not all(key in item for key in required_cause):
             raise DiagnosticPayloadError("Each possible cause must include evidence and likelihood.")
+        if not isinstance(item["cause"], str) or not item["cause"].strip():
+            raise DiagnosticPayloadError("Cause must be a non-empty string.")
         if item["likelihood"] not in ("low", "medium", "high"):
             raise DiagnosticPayloadError("Cause likelihood must be low, medium or high.")
         if not all(isinstance(item[key], list) and all(isinstance(v, str) for v in item[key])
