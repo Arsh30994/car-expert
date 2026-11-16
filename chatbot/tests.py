@@ -323,6 +323,8 @@ class SharedGarageChatContextTests(TestCase):
         self.assertEqual(response.status_code, 302)
         vehicle = Vehicle.objects.get(user=self.user, make="Maruti Suzuki")
         self.assertEqual(GarageSelection.objects.get(user=self.user).selected_vehicle, vehicle)
+        session.refresh_from_db()
+        self.assertEqual(session.garage_vehicle, vehicle)
 
     def test_add_vehicle_form_rejects_invalid_year(self):
         from garage.models import Vehicle
