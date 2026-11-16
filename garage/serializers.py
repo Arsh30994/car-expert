@@ -19,6 +19,9 @@ class VehicleSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Enter a plausible vehicle year.")
         return value
 
+    def validate_registration_number(self, value):
+        return value.strip().upper()
+
     def validate_vin(self, value):
         value = value.strip().upper()
         if value and not re.fullmatch(r"[A-HJ-NPR-Z0-9]{17}", value):
