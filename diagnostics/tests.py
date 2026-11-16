@@ -4,6 +4,7 @@ from django.test import TestCase
 from garage.models import Vehicle
 from .models import DiagnosticReport
 from .schema import DiagnosticPayloadError, validate_diagnostic_payload
+from .services import persist_diagnostic_report
 
 User = get_user_model()
 
@@ -67,3 +68,25 @@ class DiagnosticReportPersistenceTests(TestCase):
         )
         self.assertEqual(report.vehicle.user, owner)
         self.assertEqual(vehicle.diagnostic_reports.get(), report)
+
+
+    def test_report_service_rejects_a_vehicle_owned_by_someone_else(self):
+        owner = User.objects.create_user(username="real-owner", password="test-pass-123")
+        other = User.objects.create_user(username="not-owner", password="test-pass-123")
+        vehicle = Vehicle.objects.create(user=owner, make="Honda", model="City", year=2021)
+        with self.assertRaises(PermissionError):
+            persist_diagnostic_report(
+                user=other, vehicle=vehicle, title="Unauthorized report",
+                payload=self.valid_payload(),
+            )
+
+    def test_report_service_persists_validated_structured_data(self):
+        owner = User.objects.create_user(username="report-owner", password="test-pass-123")
+        vehicle = Vehicle.objects.create(user=owner, make="Tata", model="Nexon", year=2023)
+        report = persist_diagnostic_report(
+            user=owner, vehicle=vehicle, title="Cooling inspection",
+            payload=self.valid_payload(),
+        )
+        self.assertEqual(report.created_by, owner)
+        self.assertEqual(report.vehicle, vehicle)
+        self.assertEqual(report.report_data["urgency"], "high")
