@@ -6,6 +6,7 @@ from chatbot import views
 urlpatterns = [
     path("health/", views.health_check, name="health"),
     path("", views.chat_view, name="chat"),
+    path("dashboard/", views.dashboard_view, name="dashboard"),
     path(
         "accounts/login/",
         auth_views.LoginView.as_view(
