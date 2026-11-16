@@ -358,7 +358,7 @@ class VehicleCentricDashboardTests(TestCase):
         response = self.client.get(reverse("chat"))
         self.assertEqual(response.status_code, 200)
         session = ChatSession.objects.get(user=self.user)
-        self.assertEqual(session.vehicle, self.vehicle)
+        self.assertEqual(session.garage_vehicle, self.vehicle)
 
     def test_dashboard_requires_authentication(self):
         self.client.logout()
