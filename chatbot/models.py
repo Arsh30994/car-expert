@@ -77,6 +77,4 @@ class VehicleProfile(models.Model):
             parts.append(self.transmission)
         if self.mileage_km:
             parts.append(f"{self.mileage_km} km")
-        if self.vin:
-            parts.append(f"VIN {self.vin}")
         return ", ".join(p for p in parts if p)
