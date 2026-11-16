@@ -10,9 +10,14 @@ from django.contrib.auth.forms import UserCreationForm
 from django.db import DatabaseError, connection
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from .gemini_client import get_response, is_car_related
+from garage.models import GarageSelection, Vehicle
+from garage.serializers import VehicleSerializer
+
 from .models import ChatSession, Message, VehicleProfile
 
 
@@ -75,9 +80,12 @@ def _get_or_create_session(request, session_id=None):
 
 def _chat_context(request, session):
     vehicle, _ = VehicleProfile.objects.get_or_create(session=session)
+    selection, _ = GarageSelection.objects.get_or_create(user=request.user)
     return {
         "messages": session.messages.order_by("created_at"),
         "vehicle": vehicle,
+        "garage_vehicles": Vehicle.objects.filter(user=request.user),
+        "selected_vehicle": selection.selected_vehicle,
         "sessions": _sessions_for(request),
         "current_session": session,
     }
@@ -223,6 +231,9 @@ def delete_session(request, session_id):
 def send_message(request, session_id):
     session = get_object_or_404(ChatSession, id=session_id, user=request.user)
     vehicle, _ = VehicleProfile.objects.get_or_create(session=session)
+    selection = GarageSelection.objects.filter(user=request.user).select_related("selected_vehicle").first()
+    shared_vehicle = selection.selected_vehicle if selection else None
+    vehicle_context = shared_vehicle.as_context() if shared_vehicle else vehicle.as_context()
 
     user_text = (request.POST.get("text") or request.POST.get("message") or "").strip()
     uploaded_file = request.FILES.get("file")
@@ -264,7 +275,7 @@ def send_message(request, session_id):
             finding = None
         else:
             reply_text, finding = get_response(
-                user_text, file_path, vehicle.as_context()
+                user_text, file_path, vehicle_context
             )
 
         Message.objects.create(
@@ -295,3 +306,47 @@ def send_message(request, session_id):
                 os.remove(file_path)
             except OSError:
                 pass
+
+
+@login_required
+@require_POST
+def select_garage_vehicle(request):
+    vehicle_id = (request.POST.get("vehicle_id") or "").strip()
+    selection, _ = GarageSelection.objects.get_or_create(user=request.user)
+    if not vehicle_id:
+        selection.selected_vehicle = None
+    else:
+        try:
+            vehicle = Vehicle.objects.get(pk=int(vehicle_id), user=request.user)
+        except (ValueError, TypeError, Vehicle.DoesNotExist):
+            return JsonResponse({"error": "Choose a vehicle from your own garage."}, status=400)
+        selection.selected_vehicle = vehicle
+    selection.save(update_fields=["selected_vehicle", "updated_at"])
+    next_url = request.POST.get("next")
+    if not next_url or not url_has_allowed_host_and_scheme(
+        next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        next_url = reverse("chat")
+    return redirect(next_url)
+
+
+@login_required
+@require_POST
+def add_garage_vehicle(request):
+    serializer = VehicleSerializer(data=request.POST)
+    if not serializer.is_valid():
+        return JsonResponse({"errors": serializer.errors}, status=400)
+    vehicle = serializer.save(user=request.user)
+    selection, _ = GarageSelection.objects.get_or_create(user=request.user)
+    selection.selected_vehicle = vehicle
+    selection.save(update_fields=["selected_vehicle", "updated_at"])
+    next_url = request.POST.get("next")
+    if not next_url or not url_has_allowed_host_and_scheme(
+        next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        next_url = reverse("chat")
+    return redirect(next_url)
