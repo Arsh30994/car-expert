@@ -117,14 +117,14 @@ A code commit is not a passing test. Milestones remain in progress until GitHub 
 ## Current implementation status
 
 - [x] Vehicle-centric scope locked; shopping marketplace removed from active V2 branch.
-- [x] Existing permanent garage extended with nickname and registration number; existing `mileage_km` remains the compatibility odometer field.
+- [x] Existing permanent garage extended with nickname, registration number and engine; existing `mileage_km` remains the compatibility odometer field and `current_odometer_km` is exposed as an alias.
 - [x] Added vehicle-linked `ServiceRecord` and `MaintenanceTask` persistence.
-- [x] Added permanent vehicle FK to chat sessions while retaining legacy `VehicleProfile`.
+- [x] Added permanent vehicle FK to chat sessions while retaining legacy `VehicleProfile`; diagnostic reports can retain their originating session.
 - [x] Added structured diagnostic report schema, validator, persistence model and owner-checking service.
 - [x] Added authenticated vehicle cockpit dashboard and responsive navigation.
 - [x] Added tests for garage records, report schema/ownership, dashboard and chat vehicle binding.
-- [x] GitHub Actions completed migrations, regression tests and Django checks successfully on commit `be6757f0658eefaea049cdd33e430c27cf0910e9`.
-- [ ] Re-run CI after the final active-session vehicle-binding change and README update.
+- [x] GitHub Actions completed migration consistency checks, database migrations, the full chatbot/garage/diagnostics test suite and Django system checks successfully on commit `f5d5e403e4f5f83bf6277b1326c93fcc8e399637`.
+- [x] Re-run CI after the active-session vehicle-binding, report provenance, odometer alias, engine field and privacy updates.
 - [ ] Browser smoke test on a branch preview/staging environment.
 - [ ] Complete diagnostic orchestration, report generation from chat evidence and vehicle timeline UI (M2).
 
