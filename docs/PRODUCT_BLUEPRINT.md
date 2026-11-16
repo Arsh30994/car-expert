@@ -18,7 +18,7 @@ The repository already contains Django authentication, conversation sessions, AI
 | Automotive learning platforms | Interactive learning | Quizzes and progress saved |
 
 ## Architecture
-- React + TypeScript frontend (future milestone), Django REST backend.
+- Django templates and vanilla JavaScript frontend; Django views and services remain the application backend.
 - PostgreSQL in production; SQLite for local development.
 - Owner-scoped Vehicle is the canonical garage entity.
 - GarageSelection stores one account-wide selected vehicle; every module resolves its context through this record.
