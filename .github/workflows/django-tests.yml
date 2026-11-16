@@ -6,9 +6,11 @@ on:
       - main
       - feature/automotive-platform-foundation
       - v2-development
+      - v2-internal-preview
   pull_request:
     branches:
       - main
+      - v2-internal-preview
 
 jobs:
   test:
