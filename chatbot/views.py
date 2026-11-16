@@ -140,7 +140,7 @@ def _upload_error(uploaded_file):
 @require_http_methods(["GET", "POST"])
 def register_view(request):
     if request.user.is_authenticated:
-        return redirect("chat")
+        return redirect("dashboard")
 
     form = UserCreationForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
