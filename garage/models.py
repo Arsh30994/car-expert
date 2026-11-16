@@ -44,10 +44,6 @@ class Vehicle(models.Model):
             parts.append(self.transmission)
         if self.mileage_km:
             parts.append(f"{self.mileage_km} km")
-        if self.vin:
-            parts.append(f"VIN {self.vin}")
-        if self.registration_number:
-            parts.append(f"Registration {self.registration_number}")
         return ", ".join(parts)
 
     def __str__(self):
