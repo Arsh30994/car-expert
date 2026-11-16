@@ -16,6 +16,10 @@ class DiagnosticReport(models.Model):
     vehicle = models.ForeignKey(
         Vehicle, on_delete=models.CASCADE, related_name="diagnostic_reports"
     )
+    chat_session = models.ForeignKey(
+        "chatbot.ChatSession", on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="diagnostic_reports",
+    )
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="diagnostic_reports"
     )
