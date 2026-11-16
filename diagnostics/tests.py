@@ -61,6 +61,7 @@ class DiagnosticReportPersistenceTests(TestCase):
         report_data = validate_diagnostic_payload(payload)
         report = DiagnosticReport.objects.create(
             vehicle=vehicle,
+            created_by=owner,
             title="Cooling system inspection",
             summary=report_data["summary"],
             urgency=report_data["urgency"],
