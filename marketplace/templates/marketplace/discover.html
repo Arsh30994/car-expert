@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Discover cars — Car Expert AI{% endblock %}
+{% block content %}
+<section class="chat-pane" style="padding:32px;overflow:auto">
+  <div style="max-width:900px;margin:0 auto;width:100%">
+    <p class="data">CAR EXPERT AI / V2</p>
+    <h1>Find the right car for your life.</h1>
+    <p class="muted">Tell us what matters. We’ll match your needs against a curated catalogue and explain the trade-offs.</p>
+    <div class="finding-card" style="margin-top:24px">
+      <strong>Discovery is being built in milestones.</strong>
+      <p class="finding-body">The recommendation and finance calculation foundations are in place. Verified vehicle catalogue records and city-specific prices will appear here only after their sources have been checked.</p>
+      <p class="finding-rec">Next: catalogue filters, variant details and transparent recommendations.</p>
+    </div>
+    <a class="spec-edit-btn" href="{% url 'chat' %}">Return to AI chat</a>
+  </div>
+</section>
+{% endblock %}
