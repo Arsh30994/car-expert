@@ -26,17 +26,21 @@
     <div class="topbar-meta">
       {% if user.is_authenticated %}
         <span>
-          {% if vehicle.year or vehicle.make or vehicle.model %}
+          {% if selected_vehicle %}
+            {{ selected_vehicle.display_name }}
+          {% elif vehicle.year or vehicle.make or vehicle.model %}
             {{ vehicle.year }} {{ vehicle.make }} {{ vehicle.model }}
           {% else %}
-            No vehicle set
+            No vehicle selected
           {% endif %}
         </span>
         <div class="divider"></div>
-        {% if vehicle.vin %}
+        {% if selected_vehicle and selected_vehicle.vin %}
+          <span class="data">VIN {{ selected_vehicle.vin|slice:":3" }}···{{ selected_vehicle.vin|slice:"-4:" }}</span>
+        {% elif vehicle.vin %}
           <span class="data">VIN {{ vehicle.vin|slice:":3" }}···{{ vehicle.vin|slice:"-4:" }}</span>
         {% else %}
-          <span class="data">VIN not set</span>
+          <span class="data">VEHICLE CONTEXT</span>
         {% endif %}
       {% else %}
         <span>Sign in to save vehicle profiles and chat history</span>
