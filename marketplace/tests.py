@@ -1,4 +1,4 @@
-from django.test import SimpleTestCase
+from django.test import SimpleTestCase, TestCase
 
 from django.contrib.auth.models import User\nfrom django.urls import reverse\n\nfrom marketplace.services import calculate_emi, rank_cars
 
@@ -55,7 +55,7 @@ class FinanceCalculatorTests(SimpleTestCase):
             calculate_emi(principal=100000, annual_interest_rate=9, tenure_months=0)
 
 
-class MarketplaceViewTests(__import__("django.test", fromlist=["TestCase"]).TestCase):
+class MarketplaceViewTests(TestCase):
     def test_discovery_page_requires_authentication(self):
         response = self.client.get(reverse("discover"))
         self.assertEqual(response.status_code, 302)
