@@ -75,7 +75,7 @@ def _get_or_create_session(request, session_id=None):
         user=request.user,
         browser_key=key,
         title="New session",
-        vehicle=selection.selected_vehicle if selection else None,
+        garage_vehicle=selection.selected_vehicle if selection else None,
     )
     VehicleProfile.objects.get_or_create(session=session)
     request.session["chat_session_id"] = session.id
@@ -89,7 +89,7 @@ def _chat_context(request, session):
         "messages": session.messages.order_by("created_at"),
         "vehicle": vehicle,
         "garage_vehicles": Vehicle.objects.filter(user=request.user),
-        "selected_vehicle": session.vehicle or selection.selected_vehicle,
+        "selected_vehicle": session.garage_vehicle or selection.selected_vehicle,
         "sessions": _sessions_for(request),
         "current_session": session,
     }
@@ -198,7 +198,7 @@ def new_session(request):
         user=request.user,
         browser_key=key,
         title="New session",
-        vehicle=selection.selected_vehicle if selection else None,
+        garage_vehicle=selection.selected_vehicle if selection else None,
     )
     VehicleProfile.objects.create(session=session)
     request.session["chat_session_id"] = session.id
@@ -259,10 +259,10 @@ def send_message(request, session_id):
     vehicle, _ = VehicleProfile.objects.get_or_create(session=session)
     selection = GarageSelection.objects.filter(user=request.user).select_related("selected_vehicle").first()
     shared_vehicle = selection.selected_vehicle if selection else None
-    if session.vehicle_id is None and shared_vehicle is not None:
-        session.vehicle = shared_vehicle
+    if session.garage_vehicle_id is None and shared_vehicle is not None:
+        session.garage_vehicle = shared_vehicle
         session.save(update_fields=["vehicle"])
-    contextual_vehicle = session.vehicle or shared_vehicle
+    contextual_vehicle = session.garage_vehicle or shared_vehicle
     vehicle_context = contextual_vehicle.as_context() if contextual_vehicle else vehicle.as_context()
 
     user_text = (request.POST.get("text") or request.POST.get("message") or "").strip()
@@ -354,7 +354,7 @@ def select_garage_vehicle(request):
     selection.save(update_fields=["selected_vehicle", "updated_at"])
     current_session_id = request.session.get("chat_session_id")
     if current_session_id:
-        ChatSession.objects.filter(id=current_session_id, user=request.user).update(vehicle=selection.selected_vehicle)
+        ChatSession.objects.filter(id=current_session_id, user=request.user).update(garage_vehicle=selection.selected_vehicle)
     next_url = request.POST.get("next")
     if not next_url or not url_has_allowed_host_and_scheme(
         next_url,
