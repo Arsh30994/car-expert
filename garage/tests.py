@@ -29,6 +29,7 @@ class VehicleGarageApiTests(TestCase):
         self.assertEqual(response.status_code, 201)
         vehicle_id = response.json()["id"]
         self.assertEqual(response.json()["display_name"], "2022 Toyota Corolla")
+        self.assertEqual(response.json()["current_odometer_km"], 18500)
         listing = self.client.get(reverse("garage:vehicle-list"))
         self.assertEqual(listing.status_code, 200)
         self.assertEqual([item["id"] for item in listing.json()["results"]], [vehicle_id])
