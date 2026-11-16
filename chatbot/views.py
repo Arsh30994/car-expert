@@ -375,6 +375,9 @@ def add_garage_vehicle(request):
     selection, _ = GarageSelection.objects.get_or_create(user=request.user)
     selection.selected_vehicle = vehicle
     selection.save(update_fields=["selected_vehicle", "updated_at"])
+    current_session_id = request.session.get("chat_session_id")
+    if current_session_id:
+        ChatSession.objects.filter(id=current_session_id, user=request.user).update(garage_vehicle=vehicle)
     next_url = request.POST.get("next")
     if not next_url or not url_has_allowed_host_and_scheme(
         next_url,
