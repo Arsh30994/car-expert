@@ -167,6 +167,8 @@ class VehicleCentricRecordTests(TestCase):
         context = self.vehicle.as_context()
         self.assertIn("Randeep's i20", context)
         self.assertIn("42380 km", context)
+        self.assertNotIn(self.vehicle.registration_number, context)
+        self.assertNotIn(self.vehicle.vin, context)
 
     def test_service_record_is_vehicle_scoped(self):
         from .models import ServiceRecord
