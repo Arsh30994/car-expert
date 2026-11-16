@@ -47,6 +47,12 @@ class DiagnosticSchemaTests(TestCase):
         with self.assertRaises(DiagnosticPayloadError):
             validate_diagnostic_payload(payload)
 
+    def test_observations_must_be_a_list(self):
+        payload = self.valid_payload()
+        payload["observations"] = None
+        with self.assertRaises(DiagnosticPayloadError):
+            validate_diagnostic_payload(payload)
+
     def test_observation_confidence_must_be_categorical(self):
         payload = self.valid_payload()
         payload["observations"][0]["confidence"] = 99
