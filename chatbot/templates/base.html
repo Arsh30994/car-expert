@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>{% block title %}GarageMind{% endblock %}</title>
+  <title>{% block title %}Car Expert AI{% endblock %}</title>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'chatbot/style.css' %}">
 </head>
@@ -12,22 +12,35 @@
 <div class="app">
   <div class="topbar">
     <div class="brand">
-      <div class="brand-name">Garage<span>Mind</span></div>
+      <div class="brand-name">CAR<span>EXPERT AI</span></div>
     </div>
+    {% if user.is_authenticated %}
+    <nav class="cockpit-nav" aria-label="Main navigation">
+      <a href="{% url 'dashboard' %}">Overview</a>
+      <a href="{% url 'dashboard' %}#garage">Garage</a>
+      <a href="{% url 'dashboard' %}#diagnostics">Diagnostics</a>
+      <a href="{% url 'dashboard' %}#maintenance">Maintenance</a>
+      <a href="{% url 'chat' %}">AI Chat</a>
+    </nav>
+    {% endif %}
     <div class="topbar-meta">
       {% if user.is_authenticated %}
         <span>
-          {% if vehicle.year or vehicle.make or vehicle.model %}
+          {% if selected_vehicle %}
+            {{ selected_vehicle.display_name }}
+          {% elif vehicle.year or vehicle.make or vehicle.model %}
             {{ vehicle.year }} {{ vehicle.make }} {{ vehicle.model }}
           {% else %}
-            No vehicle set
+            No vehicle selected
           {% endif %}
         </span>
         <div class="divider"></div>
-        {% if vehicle.vin %}
+        {% if selected_vehicle and selected_vehicle.vin %}
+          <span class="data">VIN {{ selected_vehicle.vin|slice:":3" }}···{{ selected_vehicle.vin|slice:"-4:" }}</span>
+        {% elif vehicle.vin %}
           <span class="data">VIN {{ vehicle.vin|slice:":3" }}···{{ vehicle.vin|slice:"-4:" }}</span>
         {% else %}
-          <span class="data">VIN not set</span>
+          <span class="data">VEHICLE CONTEXT</span>
         {% endif %}
       {% else %}
         <span>Sign in to save vehicle profiles and chat history</span>

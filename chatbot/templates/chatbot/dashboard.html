@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Car Expert AI — Vehicle cockpit{% endblock %}
+{% block content %}
+<main class="cockpit-page">
+  <section class="cockpit-hero">
+    <div>
+      <p class="eyebrow">PERSONAL AUTOMOTIVE INTELLIGENCE / OVERVIEW</p>
+      <h1>Your vehicle cockpit<span class="accent-dot">.</span></h1>
+      <p class="hero-copy">Understand your car. Investigate problems. Know what needs attention next.</p>
+    </div>
+    <a class="primary-action" href="{% url 'chat' %}">Open AI assistant <span aria-hidden="true">↗</span></a>
+  </section>
+
+  <section class="cockpit-stats" aria-label="Garage summary">
+    <article class="stat-panel"><span class="stat-label">GARAGE VEHICLES</span><strong>{{ vehicle_count }}</strong><span class="stat-foot">Vehicles you own</span></article>
+    <article class="stat-panel"><span class="stat-label">DIAGNOSTIC REPORTS</span><strong>{{ report_count }}</strong><span class="stat-foot">Saved vehicle investigations</span></article>
+    <article class="stat-panel"><span class="stat-label">OPEN MAINTENANCE</span><strong>{{ task_count }}</strong><span class="stat-foot">Tasks awaiting attention</span></article>
+  </section>
+
+  <section class="cockpit-section" id="garage">
+    <div class="section-heading">
+      <div><p class="eyebrow">YOUR DIGITAL GARAGE</p><h2>Vehicles</h2></div>
+      <span class="section-meta">{{ vehicle_count }} registered</span>
+    </div>
+    {% if garage_vehicles %}
+      <div class="vehicle-grid">
+        {% for item in garage_vehicles %}
+          <article class="vehicle-card {% if selected_vehicle and item.id == selected_vehicle.id %}is-selected{% endif %}">
+            <div class="vehicle-card-top">
+              <span class="vehicle-symbol" aria-hidden="true">▰</span>
+              {% if selected_vehicle and item.id == selected_vehicle.id %}<span class="live-tag">ACTIVE CONTEXT</span>{% endif %}
+            </div>
+            <h3>{{ item.nickname|default:item.display_name }}</h3>
+            <p class="vehicle-subtitle">{{ item.display_name }}{% if item.variant %} · {{ item.variant }}{% endif %}</p>
+            <div class="vehicle-meta">
+              <span>{{ item.fuel_type|default:"Fuel not set" }}</span>
+              <span class="mono">{{ item.mileage_km|default:0 }} KM</span>
+            </div>
+            {% if item.registration_number %}<p class="registration">{{ item.registration_number }}</p>{% endif %}
+            <form method="post" action="{% url 'select_garage_vehicle' %}">
+              {% csrf_token %}
+              <input type="hidden" name="vehicle_id" value="{{ item.id }}">
+              <input type="hidden" name="next" value="{% url 'dashboard' %}">
+              <button class="select-vehicle-btn" type="submit">{% if selected_vehicle and item.id == selected_vehicle.id %}Selected vehicle{% else %}Set active vehicle{% endif %}</button>
+            </form>
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <span class="empty-icon" aria-hidden="true">＋</span>
+        <h3>Your garage starts here</h3>
+        <p>Add your first vehicle to connect conversations, diagnostics and maintenance to one permanent vehicle profile.</p>
+      </div>
+    {% endif %}
+
+    <details class="add-vehicle-panel">
+      <summary>＋ Add a vehicle</summary>
+      <form method="post" action="{% url 'add_garage_vehicle' %}" class="vehicle-form-grid">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{% url 'dashboard' %}">
+        <label>Nickname <input name="nickname" maxlength="80" placeholder="e.g. Daily Driver"></label>
+        <label>Make <input name="make" maxlength="80" placeholder="Hyundai" required></label>
+        <label>Model <input name="model" maxlength="80" placeholder="i20" required></label>
+        <label>Year <input name="year" type="number" min="1886" placeholder="2022" required></label>
+        <label>Variant <input name="variant" maxlength="100" placeholder="Sportz"></label>
+        <label>Engine <input name="engine" maxlength="80" placeholder="1.2L Petrol"></label>
+        <label>Fuel type <select name="fuel_type"><option value="">Select fuel</option><option>Petrol</option><option>Diesel</option><option>CNG</option><option>Electric</option><option>Hybrid</option></select></label>
+        <label>Registration number <input name="registration_number" maxlength="20" placeholder="Optional"></label>
+        <label>Current odometer (km) <input name="mileage_km" type="number" min="0" value="0"></label>
+        <button class="primary-action form-submit" type="submit">Add vehicle to garage</button>
+      </form>
+    </details>
+  </section>
+
+  <section class="cockpit-columns">
+    <div class="cockpit-section" id="diagnostics">
+      <div class="section-heading"><div><p class="eyebrow">EVIDENCE & INVESTIGATION</p><h2>Recent diagnostics</h2></div><span class="section-meta">LATEST 5</span></div>
+      {% for report in diagnostic_reports %}
+        <article class="activity-row">
+          <span class="activity-indicator urgency-{{ report.urgency }}"></span>
+          <div><strong>{{ report.title }}</strong><p>{{ report.summary|truncatechars:110 }}</p><small>{{ report.vehicle.display_name }} · {{ report.created_at|date:"M j, Y" }}</small></div>
+          <span class="urgency-label">{{ report.get_urgency_display }}</span>
+        </article>
+      {% empty %}
+        <div class="quiet-empty"><strong>No diagnostic reports yet</strong><p>Start a vehicle-specific investigation in the AI assistant. Saved reports will appear here.</p><a href="{% url 'chat' %}">Start a diagnostic ↗</a></div>
+      {% endfor %}
+    </div>
+
+    <div class="cockpit-section" id="maintenance">
+      <div class="section-heading"><div><p class="eyebrow">WHAT NEEDS ATTENTION</p><h2>Maintenance queue</h2></div><span class="section-meta">OPEN TASKS</span></div>
+      {% for task in pending_tasks %}
+        <article class="activity-row">
+          <span class="activity-indicator urgency-{{ task.priority }}"></span>
+          <div><strong>{{ task.title }}</strong><p>{{ task.vehicle.display_name }}{% if task.due_date %} · Due {{ task.due_date|date:"M j, Y" }}{% endif %}</p><small>{% if task.due_odometer_km %}At {{ task.due_odometer_km }} km{% else %}Due date not set{% endif %}</small></div>
+          <span class="urgency-label">{{ task.get_priority_display }}</span>
+        </article>
+      {% empty %}
+        <div class="quiet-empty"><strong>No open maintenance tasks</strong><p>Tasks created from diagnostic reports and service planning will be tracked here.</p></div>
+      {% endfor %}
+    </div>
+  </section>
+</main>
+{% endblock %}

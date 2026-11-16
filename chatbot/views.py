@@ -17,6 +17,8 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 from .gemini_client import get_response, is_car_related
 from garage.models import GarageSelection, Vehicle
 from garage.serializers import VehicleSerializer
+from diagnostics.models import DiagnosticReport
+from garage.models import MaintenanceTask
 
 from .models import ChatSession, Message, VehicleProfile
 
@@ -68,10 +70,12 @@ def _get_or_create_session(request, session_id=None):
             VehicleProfile.objects.get_or_create(session=session)
             return session
 
+    selection = GarageSelection.objects.filter(user=request.user).select_related("selected_vehicle").first()
     session = ChatSession.objects.create(
         user=request.user,
         browser_key=key,
         title="New session",
+        garage_vehicle=selection.selected_vehicle if selection else None,
     )
     VehicleProfile.objects.get_or_create(session=session)
     request.session["chat_session_id"] = session.id
@@ -85,7 +89,7 @@ def _chat_context(request, session):
         "messages": session.messages.order_by("created_at"),
         "vehicle": vehicle,
         "garage_vehicles": Vehicle.objects.filter(user=request.user),
-        "selected_vehicle": selection.selected_vehicle,
+        "selected_vehicle": session.garage_vehicle or selection.selected_vehicle,
         "sessions": _sessions_for(request),
         "current_session": session,
     }
@@ -136,15 +140,35 @@ def _upload_error(uploaded_file):
 @require_http_methods(["GET", "POST"])
 def register_view(request):
     if request.user.is_authenticated:
-        return redirect("chat")
+        return redirect("dashboard")
 
     form = UserCreationForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
         user = form.save()
         login(request, user)
-        return redirect("chat")
+        return redirect("dashboard")
 
     return render(request, "chatbot/register.html", {"form": form})
+
+
+@login_required
+def dashboard_view(request):
+    vehicles = Vehicle.objects.filter(user=request.user)
+    selection = GarageSelection.objects.filter(user=request.user).select_related("selected_vehicle").first()
+    selected_vehicle = selection.selected_vehicle if selection else None
+    reports = DiagnosticReport.objects.filter(vehicle__user=request.user)
+    tasks = MaintenanceTask.objects.filter(
+        vehicle__user=request.user, status__in=["pending", "scheduled"]
+    )
+    return render(request, "chatbot/dashboard.html", {
+        "garage_vehicles": vehicles,
+        "selected_vehicle": selected_vehicle,
+        "diagnostic_reports": reports[:5],
+        "pending_tasks": tasks[:5],
+        "vehicle_count": vehicles.count(),
+        "report_count": reports.count(),
+        "task_count": tasks.count(),
+    })
 
 
 @login_required
@@ -169,10 +193,12 @@ def session_view(request, session_id):
 @require_POST
 def new_session(request):
     key = _browser_key(request)
+    selection = GarageSelection.objects.filter(user=request.user).select_related("selected_vehicle").first()
     session = ChatSession.objects.create(
         user=request.user,
         browser_key=key,
         title="New session",
+        garage_vehicle=selection.selected_vehicle if selection else None,
     )
     VehicleProfile.objects.create(session=session)
     request.session["chat_session_id"] = session.id
@@ -233,7 +259,11 @@ def send_message(request, session_id):
     vehicle, _ = VehicleProfile.objects.get_or_create(session=session)
     selection = GarageSelection.objects.filter(user=request.user).select_related("selected_vehicle").first()
     shared_vehicle = selection.selected_vehicle if selection else None
-    vehicle_context = shared_vehicle.as_context() if shared_vehicle else vehicle.as_context()
+    if session.garage_vehicle_id is None and shared_vehicle is not None:
+        session.garage_vehicle = shared_vehicle
+        session.save(update_fields=["garage_vehicle"])
+    contextual_vehicle = session.garage_vehicle or shared_vehicle
+    vehicle_context = contextual_vehicle.as_context() if contextual_vehicle else vehicle.as_context()
 
     user_text = (request.POST.get("text") or request.POST.get("message") or "").strip()
     uploaded_file = request.FILES.get("file")
@@ -322,6 +352,9 @@ def select_garage_vehicle(request):
             return JsonResponse({"error": "Choose a vehicle from your own garage."}, status=400)
         selection.selected_vehicle = vehicle
     selection.save(update_fields=["selected_vehicle", "updated_at"])
+    current_session_id = request.session.get("chat_session_id")
+    if current_session_id:
+        ChatSession.objects.filter(id=current_session_id, user=request.user).update(garage_vehicle=selection.selected_vehicle)
     next_url = request.POST.get("next")
     if not next_url or not url_has_allowed_host_and_scheme(
         next_url,
@@ -342,6 +375,9 @@ def add_garage_vehicle(request):
     selection, _ = GarageSelection.objects.get_or_create(user=request.user)
     selection.selected_vehicle = vehicle
     selection.save(update_fields=["selected_vehicle", "updated_at"])
+    current_session_id = request.session.get("chat_session_id")
+    if current_session_id:
+        ChatSession.objects.filter(id=current_session_id, user=request.user).update(garage_vehicle=vehicle)
     next_url = request.POST.get("next")
     if not next_url or not url_has_allowed_host_and_scheme(
         next_url,

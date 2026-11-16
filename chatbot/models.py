@@ -13,6 +13,10 @@ class ChatSession(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     title = models.CharField(max_length=80, blank=True)
     browser_key = models.CharField(max_length=40, blank=True, db_index=True)
+    garage_vehicle = models.ForeignKey(
+        "garage.Vehicle", on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="chat_sessions",
+    )
 
     def __str__(self):
         return self.title or f"Session {self.pk}"
@@ -73,6 +77,4 @@ class VehicleProfile(models.Model):
             parts.append(self.transmission)
         if self.mileage_km:
             parts.append(f"{self.mileage_km} km")
-        if self.vin:
-            parts.append(f"VIN {self.vin}")
         return ", ".join(p for p in parts if p)
