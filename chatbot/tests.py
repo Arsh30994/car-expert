@@ -12,6 +12,7 @@ from django.templatetags.static import static
 from django.urls import reverse
 
 from .models import ChatSession, Message, VehicleProfile
+from garage.models import GarageSelection, Vehicle
 
 
 class ChatAuthTests(TestCase):
@@ -334,3 +335,31 @@ class SharedGarageChatContextTests(TestCase):
         self.assertIn("year", response.json()["errors"])
         self.assertEqual(Vehicle.objects.filter(user=self.user).count(), 1)
         self.assertFalse(Vehicle.objects.filter(user=self.user, make="Toyota").exists())
+
+
+class VehicleCentricDashboardTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="dashboard-driver", password="test-pass-123")
+        self.client.force_login(self.user)
+        self.vehicle = Vehicle.objects.create(
+            user=self.user, make="Hyundai", model="i20", year=2022,
+            nickname="Randeep's i20", mileage_km=42380,
+        )
+
+    def test_dashboard_is_authenticated_and_shows_garage_summary(self):
+        response = self.client.get(reverse("dashboard"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Your vehicle cockpit")
+        self.assertContains(response, "Randeep&#x27;s i20")
+        self.assertEqual(response.context["vehicle_count"], 1)
+
+    def test_new_chat_session_inherits_selected_vehicle(self):
+        GarageSelection.objects.create(user=self.user, selected_vehicle=self.vehicle)
+        response = self.client.get(reverse("chat"))
+        self.assertEqual(response.status_code, 200)
+        session = ChatSession.objects.get(user=self.user)
+        self.assertEqual(session.vehicle, self.vehicle)
+
+    def test_dashboard_requires_authentication(self):
+        self.client.logout()
+        self.assertEqual(self.client.get(reverse("dashboard")).status_code, 302)
