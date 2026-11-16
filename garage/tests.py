@@ -154,7 +154,7 @@ class VehicleCentricRecordTests(TestCase):
         self.user = User.objects.create_user(username="owner", password="safe-password-123")
         self.vehicle = Vehicle.objects.create(
             user=self.user, make="Hyundai", model="i20", year=2022,
-            nickname="Randeep's i20", registration_number="DL01AB1234",
+            nickname="Randeep's i20", registration_number="DL01AB1234", vin="MALBB51BLMM123456",
             mileage_km=42380,
         )
 
