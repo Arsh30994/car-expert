@@ -9,14 +9,11 @@ from openai import OpenAI
 
 logger = logging.getLogger(__name__)
 
-if settings.AIMLAPI_API_KEY:
-    client = OpenAI(
-        api_key=settings.AIMLAPI_API_KEY,
-        base_url=settings.AIMLAPI_BASE_URL,
-    )
+if settings.OPENAI_API_KEY:
+    client = OpenAI(api_key=settings.OPENAI_API_KEY)
 else:
     client = None
-    logger.warning("AIMLAPI_API_KEY is not configured.")
+    logger.warning("OPENAI_API_KEY is not configured.")
 
 SYSTEM_PROMPT = """You are Car Expert AI — an expert automotive assistant with
 deep knowledge of engines, transmissions, brakes, suspension, steering,
@@ -83,13 +80,13 @@ def is_car_related(user_text, uploaded_file_path=None):
     message_text = f'{prompt}\n\nMessage: "{user_text}"' if user_text else prompt
     image_content = _image_content(uploaded_file_path) if uploaded_file_path else None
     if image_content:
-        model = settings.AIMLAPI_VISION_MODEL
+        model = settings.OPENAI_VISION_MODEL
         if not model:
             return True
         content = [image_content, {"type": "text", "text": message_text}]
     else:
         content = message_text
-        model = settings.AIMLAPI_MODEL
+        model = settings.OPENAI_MODEL
 
     try:
         result = client.chat.completions.create(
@@ -101,7 +98,7 @@ def is_car_related(user_text, uploaded_file_path=None):
         answer = (result.choices[0].message.content or "").strip().upper()
         return not answer or answer.startswith("YES")
     except Exception:
-        logger.exception("Groq classifier failed.")
+        logger.exception("OpenAI classifier failed.")
         return True
 
 
@@ -134,14 +131,12 @@ def _parse_reply(raw_text):
 
 
 def _provider_error_message(error):
-    detail = str(error).lower()
-    if getattr(error, "status_code", None) == 403 and "out of funds" in detail:
-        return (
-            "AI/ML API could not complete the request because this account has no "
-            "remaining credits. Top up the AI/ML API balance, then try again."
-        )
+    if getattr(error, "status_code", None) == 401:
+        return "OpenAI rejected the API key. Check OPENAI_API_KEY and restart the server."
+    if getattr(error, "status_code", None) == 429:
+        return "OpenAI rate limit or account quota reached. Please try again shortly."
     return (
-        "AI/ML API could not generate a reply right now. Please try again. "
+        "OpenAI could not generate a reply right now. Please try again. "
         "If this continues, check the server log for the detailed provider error."
     )
 
@@ -149,7 +144,7 @@ def _provider_error_message(error):
 def get_response(user_text, uploaded_file=None, vehicle_context=None):
     if client is None:
         return (
-            "AI/ML API is not configured. Add AIMLAPI_API_KEY to .env and restart the server.",
+            "OpenAI is not configured. Add OPENAI_API_KEY to .env and restart the server.",
             None,
         )
 
@@ -184,17 +179,13 @@ def get_response(user_text, uploaded_file=None, vehicle_context=None):
         return "Tell me about the vehicle or attach a photo, and I can help.", None
 
     if image_content:
-        if not settings.AIMLAPI_VISION_MODEL:
-            return (
-                "Image analysis is not available with the currently configured AI/ML API models. "
-                "You can still ask text-based car questions.",
-                None,
-            )
+        if not settings.OPENAI_VISION_MODEL:
+            return "Image analysis is not configured for OpenAI.", None
         content = [image_content, {"type": "text", "text": "\n\n".join(text_parts)}]
-        model = settings.AIMLAPI_VISION_MODEL
+        model = settings.OPENAI_VISION_MODEL
     else:
         content = "\n\n".join(text_parts)
-        model = settings.AIMLAPI_MODEL
+        model = settings.OPENAI_MODEL
 
     try:
         response = client.chat.completions.create(
@@ -204,8 +195,9 @@ def get_response(user_text, uploaded_file=None, vehicle_context=None):
                 {"role": "user", "content": content},
             ],
             temperature=0.2,
+            max_tokens=512,
         )
         return _parse_reply(response.choices[0].message.content)
     except Exception as error:
-        logger.exception("AI/ML API generation failed.")
+        logger.exception("OpenAI generation failed.")
         return _provider_error_message(error), None

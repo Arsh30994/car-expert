@@ -203,30 +203,67 @@ class ChatAuthTests(TestCase):
         self.assertIn("Only JPG", response.json()["text"])
         self.assertFalse(Message.objects.filter(session=session).exists())
 
+    @override_settings(
+        STORAGES={
+            "default": {"BACKEND": "django.core.files.storage.InMemoryStorage"},
+            "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+        }
+    )
+    @patch("chatbot.views.get_response", return_value=("The image is visible.", None))
+    @patch("chatbot.views.is_car_related", return_value=True)
+    def test_send_message_persists_a_supported_image(self, _is_car_related, _get_response):
+        self.client.force_login(self.user)
+        session = ChatSession.objects.create(user=self.user, title="Image check")
+        VehicleProfile.objects.create(session=session)
+        image = SimpleUploadedFile(
+            "warning-light.png", b"\x89PNG\r\n\x1a\nimage-data", content_type="image/png"
+        )
 
-class AimlApiClientTests(TestCase):
-    def test_insufficient_credits_message_is_actionable(self):
+        response = self.client.post(
+            reverse("send_message", args=[session.id]),
+            {"text": "What does this light mean?", "file": image},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        stored = Message.objects.get(session=session, role="user")
+        self.assertTrue(stored.attachment_is_image)
+        self.assertTrue(stored.file.name.endswith("warning-light.png"))
+
+
+class OpenAIClientTests(TestCase):
+    def test_quota_message_is_actionable(self):
         from .gemini_client import _provider_error_message
 
         error = type(
             "ProviderError",
             (Exception,),
-            {"status_code": 403},
-        )("You've run out of funds.")
+            {"status_code": 429},
+        )("Rate limit exceeded")
 
-        self.assertIn("no remaining credits", _provider_error_message(error))
+        self.assertIn("rate limit", _provider_error_message(error))
+
+    def test_invalid_key_message_is_actionable(self):
+        from .gemini_client import _provider_error_message
+
+        error = type(
+            "ProviderError",
+            (Exception,),
+            {"status_code": 401},
+        )("Invalid API key")
+
+        self.assertIn("API key", _provider_error_message(error))
 
     @patch("chatbot.gemini_client.client", None)
-    def test_missing_aimlapi_configuration_returns_an_actionable_message(self):
+    def test_missing_openai_configuration_returns_an_actionable_message(self):
         from .gemini_client import get_response
 
         text, finding = get_response("My car is not starting")
 
-        self.assertIn("AI/ML API is not configured", text)
+        self.assertIn("OpenAI is not configured", text)
         self.assertIsNone(finding)
 
     @patch("chatbot.gemini_client.client")
-    @override_settings(AIMLAPI_MODEL="text-model", AIMLAPI_VISION_MODEL="vision-model")
+    @override_settings(OPENAI_MODEL="text-model", OPENAI_VISION_MODEL="vision-model")
     def test_non_image_attachment_uses_the_text_classifier(self, client):
         result = SimpleNamespace(
             choices=[SimpleNamespace(message=SimpleNamespace(content="YES"))]
@@ -241,6 +278,22 @@ class AimlApiClientTests(TestCase):
         request = client.chat.completions.create.call_args.kwargs
         self.assertEqual(request["model"], "text-model")
         self.assertIsInstance(request["messages"][0]["content"], str)
+
+    @patch("chatbot.gemini_client.client")
+    @override_settings(OPENAI_MODEL="text-model")
+    def test_chat_reply_caps_output_tokens(self, client):
+        from .gemini_client import get_response
+
+        result = SimpleNamespace(
+            choices=[SimpleNamespace(message=SimpleNamespace(content='{"text": "Hello", "finding": null}'))]
+        )
+        client.chat.completions.create.return_value = result
+
+        text, finding = get_response("Hello")
+
+        self.assertEqual(text, "Hello")
+        self.assertIsNone(finding)
+        self.assertEqual(client.chat.completions.create.call_args.kwargs["max_tokens"], 512)
 
 
 class SharedGarageChatContextTests(TestCase):

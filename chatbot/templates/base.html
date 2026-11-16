@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>{% block title %}Car Expert AI{% endblock %}</title>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{% static 'chatbot/style.css' %}">
+  <link rel="stylesheet" href="{% static 'chatbot/style.css' %}?v=20261117-v3">
 </head>
 <body>
 <div class="app">
@@ -63,7 +63,7 @@
       {% endif %}
     </div>
   </div>
-  <div class="layout">
+  <div class="layout {% block layout_class %}{% endblock %}">
     {% block content %}{% endblock %}
   </div>
 </div>

@@ -40,7 +40,7 @@ def health_check(request):
         {
             "status": "ok",
             "database": "connected",
-            "ai_provider": "configured" if settings.AIMLAPI_API_KEY else "not_configured",
+            "ai_provider": "configured" if settings.OPENAI_API_KEY else "not_configured",
         }
     )
 

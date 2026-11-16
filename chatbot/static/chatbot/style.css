@@ -1376,3 +1376,180 @@ select:focus-visible, textarea:focus-visible, summary:focus-visible {
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
 }
+
+/* Reverted custom interface layer: retain the original V2 preview theme.
+:root {
+    --surface-0: #14161A;
+    --surface-1: #1B1E24;
+    --surface-2: #22262E;
+    --border-subtle: #262A32;
+    --border-strong: #3A404B;
+    --text-primary: #E9E6DF;
+    --text-secondary: #B6B7B8;
+    --text-muted: #8B8F99;
+    --status-healthy: #4FAE9E;
+    --status-warning: #E3A73B;
+    --status-critical: #D9584F;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, .28), 0 12px 28px rgba(0, 0, 0, .18);
+}
+
+html { background: var(--surface-0); }
+body { min-width: 320px; background: var(--surface-0); color: var(--text-primary); }
+button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+a { text-underline-offset: 3px; }
+
+.topbar {
+    gap: 20px;
+    padding: 0 clamp(16px, 3vw, 34px);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, .025);
+}
+.brand-name { font-family: "Barlow Semi Condensed", Inter, sans-serif; font-weight: 700; }
+.cockpit-nav { gap: 22px; }
+.cockpit-nav a { position: relative; padding: 25px 0; color: var(--text-muted); }
+.cockpit-nav a::after {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: 2px;
+    background: var(--amber);
+    content: "";
+    opacity: 0;
+    transform: scaleX(.45);
+    transition: opacity .16s ease, transform .16s ease;
+}
+.cockpit-nav a:hover::after, .cockpit-nav a:focus-visible::after { opacity: 1; transform: scaleX(1); }
+.signed-in-user { max-width: 140px; overflow: hidden; color: var(--text-secondary); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.new-session-btn, .logout-btn, .spec-edit-btn, .history-new-btn {
+    min-height: 38px;
+    border-color: var(--border-strong);
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.cockpit-page {
+    background:
+        radial-gradient(circle at 88% -8%, rgba(227, 167, 59, .11), transparent 28rem),
+        radial-gradient(circle at 0 34%, rgba(79, 174, 158, .055), transparent 25rem),
+        var(--surface-0);
+}
+.eyebrow { font-size: 10px; font-weight: 600; }
+.hero-copy { max-width: 620px; }
+.primary-action, .send-btn, .save-btn {
+    min-height: 42px;
+    border-radius: var(--radius-sm);
+    background: var(--amber);
+    color: #17191D;
+    font-weight: 700;
+    letter-spacing: .01em;
+}
+.primary-action:hover, .send-btn:hover, .save-btn:hover { background: #EEB94F; box-shadow: 0 8px 22px rgba(227, 167, 59, .18); }
+.stat-panel, .vehicle-card, .cockpit-section, .empty-state, .quiet-empty, .finding-card {
+    border-color: var(--border-subtle);
+    box-shadow: var(--shadow-card);
+}
+.stat-panel { position: relative; overflow: hidden; }
+.stat-panel::before { position: absolute; top: 0; left: 0; width: 34px; height: 2px; background: var(--amber); content: ""; }
+.stat-panel:nth-child(2)::before { background: var(--teal); }
+.stat-panel:nth-child(3)::before { background: var(--text-muted); }
+.stat-label, .section-meta { color: var(--text-muted); }
+.vehicle-card { background: linear-gradient(160deg, rgba(34, 38, 46, .98), rgba(25, 28, 34, .98)); }
+.vehicle-card.is-selected { border-color: rgba(79, 174, 158, .68); }
+.vehicle-card.is-selected .select-vehicle-btn { border-color: rgba(79, 174, 158, .55); background: rgba(79, 174, 158, .12); color: #A8DDD4; }
+.vehicle-symbol { border: 1px solid rgba(227, 167, 59, .2); }
+.live-tag { font-weight: 600; }
+.select-vehicle-btn { min-height: 38px; }
+
+.sidebar { background: #191C22; }
+.sidebar-section { padding-bottom: 20px; }
+.sidebar-title { letter-spacing: .04em; }
+.spec-row { gap: 16px; }
+.spec-row .v { overflow: hidden; color: var(--text-secondary); text-align: right; text-overflow: ellipsis; white-space: nowrap; }
+.vehicle-select-form select, .garage-add-form input, .session-rename-form input {
+    min-height: 39px;
+    border-color: var(--border-strong);
+    background: #15181E;
+}
+.session-item-row { border-radius: 7px; }
+.session-item-row.active { box-shadow: inset 2px 0 0 var(--amber); }
+.session-icon-btn { border-radius: 6px; }
+
+.chat-pane { background: var(--surface-0); }
+.chat-scroll { scrollbar-color: var(--border-strong) transparent; }
+.msg { max-width: 780px; }
+.msg.user { margin-left: auto; flex-direction: row-reverse; }
+.msg-body { min-width: 0; }
+.msg.user .msg-body { padding: 12px 14px; border: 1px solid rgba(227, 167, 59, .24); border-radius: 12px 3px 12px 12px; background: rgba(227, 167, 59, .075); }
+.msg.assistant .msg-body { padding: 3px 0; }
+.msg-bubble { color: var(--text-primary); }
+.msg-time { font-family: "JetBrains Mono", monospace; }
+.finding-card { border-left: 3px solid var(--teal); background: var(--surface-1); }
+.finding-card.severity-warning { border-color: var(--amber); }
+.finding-card.severity-critical { border-color: var(--red); }
+.composer-wrap { background: linear-gradient(180deg, rgba(20, 22, 26, .86), var(--surface-0)); }
+.composer { border-color: var(--border-strong); box-shadow: 0 8px 30px rgba(0, 0, 0, .17); }
+.composer:focus-within { border-color: rgba(227, 167, 59, .7); box-shadow: 0 0 0 3px rgba(227, 167, 59, .09); }
+.attach-btn:hover, .remove-file:hover { color: var(--amber); }
+
+.auth-shell, .edit-shell { padding: clamp(22px, 4vw, 36px); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); background: var(--surface-1); box-shadow: var(--shadow-card); }
+.auth-form input, .vehicle-form input { min-height: 43px; border-color: var(--border-strong); background: #15181E; }
+.auth-form input:focus, .vehicle-form input:focus { border-color: var(--amber); outline: 3px solid rgba(227, 167, 59, .12); }
+
+.mobile-nav { display: none; }
+.layout--cockpit {
+    display: block;
+    height: auto;
+    min-height: calc(100vh - 70px);
+}
+
+html, body { overflow-x: clip; }
+
+@media (max-width: 1100px) {
+    .topbar-meta { display: none; }
+    .cockpit-nav { margin-left: auto; gap: 14px; }
+}
+@media (max-width: 900px) {
+    .cockpit-nav { margin-left: auto; }
+    .topbar-meta { display: none; }
+    .main-layout, .layout { min-height: calc(100vh - 70px); }
+}
+@media (max-width: 620px) {
+    .topbar { position: relative; align-items: center; min-height: 62px; padding: 10px 14px; }
+    .cockpit-nav, .signed-in-user { display: none; }
+    .topbar-actions { margin-left: auto; }
+    .new-session-btn, .logout-btn { min-height: 36px; padding: 7px 9px; }
+    .logout-btn { font-size: 0; }
+    .logout-btn::after { font-size: 11px; content: "Log out"; }
+    .layout { padding-bottom: 67px; }
+    .sidebar { border-right: 0; border-bottom: 1px solid var(--border-subtle); }
+    .chat-scroll { padding: 24px 16px; }
+    .composer-wrap { padding: 12px 14px 16px; }
+    .msg { gap: 9px; margin-bottom: 20px; }
+    .msg-avatar { width: 30px; height: 30px; }
+    .mobile-nav {
+        position: fixed;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 30;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        border-top: 1px solid var(--border-strong);
+        background: rgba(27, 30, 36, .97);
+        box-shadow: 0 -10px 24px rgba(0, 0, 0, .22);
+        backdrop-filter: blur(14px);
+    }
+    .mobile-nav a { display: grid; min-height: 64px; place-content: center; gap: 3px; color: var(--text-muted); font-size: 9px; font-weight: 600; text-align: center; text-decoration: none; }
+    .mobile-nav a span { color: var(--amber); font-size: 16px; line-height: 1; }
+    .mobile-nav a:focus-visible, .mobile-nav a:hover { color: var(--text-primary); background: rgba(227, 167, 59, .06); }
+}
+*/
+
+/* Structural correction: the cockpit is a full-width page, not a chat-grid column. */
+.layout--cockpit {
+    display: block;
+    height: auto;
+    min-height: calc(100vh - 70px);
+}

@@ -25,10 +25,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv()
 IS_VERCEL = bool(os.getenv("VERCEL"))
 IS_PRODUCTION = IS_VERCEL or os.getenv("ENVIRONMENT", "development").lower() == "production"
-AIMLAPI_API_KEY = os.getenv("AIMLAPI_API_KEY")
-AIMLAPI_BASE_URL = os.getenv("AIMLAPI_BASE_URL", "https://api.aimlapi.com/v1")
-AIMLAPI_MODEL = os.getenv("AIMLAPI_MODEL", "alibaba/qwen3.7-max")
-AIMLAPI_VISION_MODEL = os.getenv("AIMLAPI_VISION_MODEL")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o")
+# GPT-4o supports image input. This can be overridden when a different
+# vision-capable OpenAI model is preferred.
+OPENAI_VISION_MODEL = os.getenv("OPENAI_VISION_MODEL", OPENAI_MODEL)
 SECRET_KEY = os.getenv("SECRET_KEY")
 if not SECRET_KEY:
     if IS_PRODUCTION:
@@ -205,6 +206,11 @@ STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [BASE_DIR / 'chatbot' / 'static']
 STORAGES = {
+    # Django 6 requires an explicit default storage when FileField uploads are
+    # used. Keep uploaded chat evidence on the configured local/media volume.
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
     "staticfiles": {
         "BACKEND": (
             "django.contrib.staticfiles.storage.StaticFilesStorage"
