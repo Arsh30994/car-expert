@@ -308,6 +308,9 @@ class SharedGarageChatContextTests(TestCase):
         from garage.models import GarageSelection, Vehicle
 
         session = ChatSession.objects.create(user=self.user, title="Garage")
+        browser_session = self.client.session
+        browser_session["chat_session_id"] = session.id
+        browser_session.save()
         response = self.client.post(
             reverse("add_garage_vehicle"),
             {
