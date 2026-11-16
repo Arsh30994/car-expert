@@ -147,3 +147,40 @@ class SharedVehicleSelectionTests(TestCase):
         response = self.client.patch(reverse("garage:vehicle-selection"), data=json.dumps({"vehicle_id": None}), content_type="application/json")
         self.assertEqual(response.status_code, 200)
         self.assertIsNone(response.json()["selected_vehicle"])
+
+
+class VehicleCentricRecordTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="owner", password="safe-password-123")
+        self.vehicle = Vehicle.objects.create(
+            user=self.user, make="Hyundai", model="i20", year=2022,
+            nickname="Randeep's i20", registration_number="DL01AB1234",
+            mileage_km=42380,
+        )
+
+    def test_vehicle_exposes_nickname_registration_and_current_odometer(self):
+        self.assertEqual(self.vehicle.nickname, "Randeep's i20")
+        self.assertEqual(self.vehicle.registration_number, "DL01AB1234")
+        self.assertEqual(self.vehicle.current_odometer_km, 42380)
+
+    def test_vehicle_context_includes_nickname_and_odometer(self):
+        context = self.vehicle.as_context()
+        self.assertIn("Randeep's i20", context)
+        self.assertIn("42380 km", context)
+
+    def test_service_record_is_vehicle_scoped(self):
+        from .models import ServiceRecord
+        record = ServiceRecord.objects.create(
+            vehicle=self.vehicle, service_date="2026-10-10",
+            odometer_km=42000, service_type="Periodic service",
+            description="Engine oil and filter replaced", cost=Decimal("6500.00"),
+        )
+        self.assertEqual(self.vehicle.service_records.get(), record)
+
+    def test_maintenance_task_is_vehicle_scoped(self):
+        from .models import MaintenanceTask
+        task = MaintenanceTask.objects.create(
+            vehicle=self.vehicle, title="Cooling system inspection",
+            priority="high", due_odometer_km=43000,
+        )
+        self.assertEqual(self.vehicle.maintenance_tasks.get(), task)
