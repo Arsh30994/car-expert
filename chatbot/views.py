@@ -1,6 +1,7 @@
 import os
 import tempfile
 import logging
+from datetime import date, timedelta
 from pathlib import Path
 
 from django.conf import settings
@@ -11,6 +12,7 @@ from django.db import DatabaseError, connection
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
@@ -26,6 +28,50 @@ from .models import ChatSession, Message, VehicleProfile
 logger = logging.getLogger(__name__)
 
 SUPPORTED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
+
+
+# These are conservative ownership reminders, not manufacturer service schedules.
+# A specific vehicle manual and local driving conditions always take precedence.
+MAINTENANCE_INTERVALS = (
+    ("Engine oil & filter", ("oil", "filter"), 10_000, 365, "high"),
+    ("Tyre rotation & pressure check", ("tyre", "tire", "rotation"), 10_000, 365, "medium"),
+    ("Brake inspection", ("brake",), 15_000, 365, "high"),
+)
+
+
+def _maintenance_recommendations(vehicle):
+    """Return explainable, read-only maintenance suggestions for one vehicle."""
+    records = list(vehicle.service_records.all())
+    is_electric = "electric" in (vehicle.fuel_type or "").lower() or "ev" in (vehicle.model or "").lower()
+    intervals = list(MAINTENANCE_INTERVALS)
+    if is_electric:
+        intervals = [item for item in intervals if item[0] != "Engine oil & filter"]
+        intervals.insert(0, ("Battery & charging system check", ("battery", "charging"), 15_000, 365, "high"))
+
+    suggestions = []
+    for title, keywords, distance_km, days, priority in intervals:
+        matching = [
+            record for record in records
+            if any(word in record.service_type.lower() for word in keywords)
+        ]
+        latest = max(matching, key=lambda record: record.service_date) if matching else None
+        if latest:
+            due_odometer = latest.odometer_km + distance_km
+            due_date = latest.service_date + timedelta(days=days)
+            overdue = vehicle.mileage_km >= due_odometer or date.today() >= due_date
+            detail = f"Last recorded at {latest.odometer_km:,} km on {latest.service_date:%d %b %Y}."
+        else:
+            due_odometer = vehicle.mileage_km
+            overdue = False
+            detail = "No matching service record found; add a baseline check to establish a schedule."
+        suggestions.append({
+            "title": title,
+            "due_odometer_km": due_odometer,
+            "priority": "high" if overdue else priority,
+            "state": "Overdue" if overdue else ("Plan" if not latest else "Upcoming"),
+            "detail": detail,
+        })
+    return suggestions
 
 
 @require_GET
@@ -184,6 +230,7 @@ def garage_view(request):
     context.update({
         "service_records": ServiceRecord.objects.filter(vehicle__user=request.user)[:8],
         "selected_service_records": selected.service_records.all()[:5] if selected else [],
+        "maintenance_recommendations": _maintenance_recommendations(selected) if selected else [],
     })
     return render(request, "chatbot/garage.html", context)
 
@@ -195,6 +242,22 @@ def diagnostics_view(request):
         vehicle__user=request.user
     ).select_related("vehicle")
     return render(request, "chatbot/diagnostics.html", context)
+
+
+@login_required
+@require_POST
+def create_task_from_report(request, report_id):
+    """Create a user-approved maintenance follow-up from an owned diagnostic report."""
+    report = get_object_or_404(DiagnosticReport, pk=report_id, vehicle__user=request.user)
+    priority = report.urgency if report.urgency in {"low", "medium", "high", "critical"} else "medium"
+    MaintenanceTask.objects.create(
+        vehicle=report.vehicle,
+        title=f"Follow up: {report.title}",
+        description=report.summary,
+        priority=priority,
+        source=f"Diagnostic report #{report.id}",
+    )
+    return redirect("maintenance")
 
 
 @login_required
@@ -216,7 +279,21 @@ def maintenance_view(request):
         )
         return redirect("maintenance")
     context["maintenance_tasks"] = MaintenanceTask.objects.filter(vehicle__user=request.user).select_related("vehicle")
+    context["maintenance_recommendations"] = _maintenance_recommendations(context["selected_vehicle"]) if context["selected_vehicle"] else []
     return render(request, "chatbot/maintenance.html", context)
+
+
+@login_required
+@require_POST
+def update_maintenance_task(request, task_id):
+    task = get_object_or_404(MaintenanceTask, pk=task_id, vehicle__user=request.user)
+    status = request.POST.get("status")
+    if status not in {"completed", "dismissed", "pending", "scheduled"}:
+        return JsonResponse({"error": "Choose a valid task status."}, status=400)
+    task.status = status
+    task.completed_at = timezone.now() if status == "completed" else None
+    task.save(update_fields=["status", "completed_at", "updated_at"])
+    return redirect("maintenance")
 
 
 @login_required

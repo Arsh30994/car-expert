@@ -1,5 +1,6 @@
 import os
 import tempfile
+from datetime import date, timedelta
 from unittest.mock import patch
 from types import SimpleNamespace
 
@@ -12,7 +13,8 @@ from django.templatetags.static import static
 from django.urls import reverse
 
 from .models import ChatSession, Message, VehicleProfile
-from garage.models import GarageSelection, MaintenanceTask, Vehicle
+from diagnostics.models import DiagnosticReport
+from garage.models import GarageSelection, MaintenanceTask, ServiceRecord, Vehicle
 
 
 class ChatAuthTests(TestCase):
@@ -60,6 +62,16 @@ class ChatAuthTests(TestCase):
 
         self.assertIsNotNone(static_path)
         self.assertTrue(os.path.normpath(static_path).endswith(expected_tail))
+
+    def test_cockpit_layout_has_a_full_width_responsive_override(self):
+        from django.contrib.staticfiles import finders
+
+        with open(finders.find("chatbot/style.css"), encoding="utf-8") as css_file:
+            css = css_file.read()
+
+        self.assertIn(".layout.layout--cockpit", css)
+        self.assertIn("display: block !important", css)
+        self.assertIn("@media (max-width: 700px)", css)
 
     @override_settings(
         DEBUG=False,
@@ -462,6 +474,52 @@ class DedicatedWorkflowPageTests(TestCase):
             )
             self.assertEqual(response.status_code, 302)
             self.assertTrue(MaintenanceTask.objects.filter(vehicle=vehicle, title=f"Dataset {index} inspection").exists())
+
+    def test_maintenance_planner_uses_service_history_and_vehicle_type(self):
+        ServiceRecord.objects.create(
+            vehicle=self.vehicle,
+            service_date=date.today() - timedelta(days=400),
+            odometer_km=20_000,
+            service_type="Engine oil and filter service",
+        )
+        self.vehicle.mileage_km = 31_000
+        self.vehicle.save(update_fields=["mileage_km"])
+        response = self.client.get(reverse("maintenance"))
+        self.assertContains(response, "Engine oil &amp; filter")
+        self.assertContains(response, "Overdue")
+
+        ev = Vehicle.objects.create(
+            user=self.user, make="Tata", model="Nexon EV", year=2024,
+            fuel_type="Electric", mileage_km=12_000,
+        )
+        GarageSelection.objects.filter(user=self.user).update(selected_vehicle=ev)
+        response = self.client.get(reverse("maintenance"))
+        self.assertContains(response, "Battery &amp; charging system check")
+        self.assertNotContains(response, "Engine oil &amp; filter")
+
+    def test_report_can_be_explicitly_converted_to_owned_maintenance_task(self):
+        report = DiagnosticReport.objects.create(
+            vehicle=self.vehicle, created_by=self.user, title="Battery warning",
+            summary="Inspect the 12V battery and terminals.", urgency="high",
+        )
+        response = self.client.post(reverse("create_task_from_report", args=[report.id]))
+        self.assertEqual(response.status_code, 302)
+        task = MaintenanceTask.objects.get(source=f"Diagnostic report #{report.id}")
+        self.assertEqual(task.vehicle, self.vehicle)
+        self.assertEqual(task.priority, "high")
+
+    def test_task_status_is_updated_only_for_the_owner(self):
+        task = MaintenanceTask.objects.create(vehicle=self.vehicle, title="Check tyres")
+        response = self.client.post(reverse("update_maintenance_task", args=[task.id]), {"status": "completed"})
+        self.assertEqual(response.status_code, 302)
+        task.refresh_from_db()
+        self.assertEqual(task.status, "completed")
+        self.assertIsNotNone(task.completed_at)
+
+        other_user = User.objects.create_user(username="other-workflow-driver", password="test-pass-123")
+        other_vehicle = Vehicle.objects.create(user=other_user, make="Honda", model="City", year=2021)
+        other_task = MaintenanceTask.objects.create(vehicle=other_vehicle, title="Private task")
+        self.assertEqual(self.client.post(reverse("update_maintenance_task", args=[other_task.id]), {"status": "dismissed"}).status_code, 404)
 
 
 class VehicleProfilePrivacyTests(TestCase):

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 700" fill="none">
+  <g stroke="#4FAE9E" stroke-width="2" opacity=".72">
+    <path d="M156 430h74l58-112h152l76-78h168l74 78h164l58 112h64v90h-66l-29 54h-98l-28-54H370l-28 54h-98l-28-54h-60z"/>
+    <path d="M284 318l78 108h442l76-108M516 240l-28 186m140-186 28 186M370 520h462M224 430h752M294 574a49 49 0 1 0 0-98 49 49 0 0 0 0 98zm612 0a49 49 0 1 0 0-98 49 49 0 0 0 0 98z"/>
+    <path d="M124 160h952M124 212h952M124 620h952" stroke-dasharray="8 10"/>
+    <path d="M600 132v510M92 350h1018" stroke-dasharray="4 12"/>
+    <path d="M288 286h128m368 0h128M184 454h-72m976 0h-72"/>
+  </g>
+  <g fill="#E3A73B" opacity=".8"><circle cx="294" cy="525" r="5"/><circle cx="906" cy="525" r="5"/><circle cx="600" cy="240" r="5"/></g>
+  <g fill="#4FAE9E" font-family="monospace" font-size="16" opacity=".65"><text x="138" y="148">CAR EXPERT / VEHICLE BLUEPRINT</text><text x="138" y="654">REFERENCE DIAGRAM · VISUAL AID ONLY</text></g>
+</svg>

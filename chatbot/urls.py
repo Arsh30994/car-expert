@@ -9,7 +9,9 @@ urlpatterns = [
     path("dashboard/", views.dashboard_view, name="dashboard"),
     path("garage/", views.garage_view, name="garage"),
     path("diagnostics/", views.diagnostics_view, name="diagnostics"),
+    path("diagnostics/<int:report_id>/create-task/", views.create_task_from_report, name="create_task_from_report"),
     path("maintenance/", views.maintenance_view, name="maintenance"),
+    path("maintenance/<int:task_id>/status/", views.update_maintenance_task, name="update_maintenance_task"),
     path(
         "accounts/login/",
         auth_views.LoginView.as_view(
