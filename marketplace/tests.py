@@ -6,39 +6,18 @@ from marketplace.services import calculate_emi, rank_cars
 class RecommendationEngineTests(SimpleTestCase):
     def setUp(self):
         self.cars = [
-            {
-                "id": 1, "name": "Family Crossover", "price": 1100000,
-                "fuel_type": "Petrol", "seats": 5, "mileage": 17,
-                "safety_score": 4, "maintenance_cost": 18000,
-                "ground_clearance": 190,
-            },
-            {
-                "id": 2, "name": "Compact Hatchback", "price": 750000,
-                "fuel_type": "Petrol", "seats": 5, "mileage": 22,
-                "safety_score": 3, "maintenance_cost": 14000,
-                "ground_clearance": 165,
-            },
-            {
-                "id": 3, "name": "Seven Seat MPV", "price": 1250000,
-                "fuel_type": "Diesel", "seats": 7, "mileage": 20,
-                "safety_score": 4, "maintenance_cost": 22000,
-                "ground_clearance": 185,
-            },
+            {"id": 1, "name": "Family Crossover", "price": 1100000, "fuel_type": "Petrol", "seats": 5, "mileage": 17, "safety_score": 4, "maintenance_cost": 18000, "ground_clearance": 190},
+            {"id": 2, "name": "Compact Hatchback", "price": 750000, "fuel_type": "Petrol", "seats": 5, "mileage": 22, "safety_score": 3, "maintenance_cost": 14000, "ground_clearance": 165},
+            {"id": 3, "name": "Seven Seat MPV", "price": 1250000, "fuel_type": "Diesel", "seats": 7, "mileage": 20, "safety_score": 4, "maintenance_cost": 22000, "ground_clearance": 185},
         ]
 
     def test_budget_and_family_constraints_filter_unsuitable_cars(self):
-        results = rank_cars(
-            self.cars,
-            {"budget": 1200000, "family_size": 6, "fuel_preferences": ["Petrol", "Diesel"]},
-        )
-        self.assertEqual([item["car"]["id"] for item in results], [1])
+        results = rank_cars(self.cars, {"budget": 1300000, "family_size": 6, "fuel_preferences": ["Petrol", "Diesel"]})
+        self.assertEqual([item["car"]["id"] for item in results], [3])
         self.assertTrue(all("reasons" in item for item in results))
 
     def test_recommendations_include_transparent_score_breakdown(self):
-        results = rank_cars(
-            self.cars,
-            {"budget": 1300000, "family_size": 4, "fuel_preferences": ["Petrol"]},
-        )
+        results = rank_cars(self.cars, {"budget": 1300000, "family_size": 4, "fuel_preferences": ["Petrol"]})
         self.assertTrue(results)
         self.assertIn("score", results[0])
         self.assertIn("score_breakdown", results[0])
@@ -49,16 +28,10 @@ class RecommendationEngineTests(SimpleTestCase):
         profile = {"budget": 1300000, "family_size": 4, "fuel_preferences": ["Petrol"]}
         first = rank_cars(self.cars, profile)
         second = rank_cars(self.cars, profile)
-        self.assertEqual(
-            [item["car"]["id"] for item in first],
-            [item["car"]["id"] for item in second],
-        )
+        self.assertEqual([item["car"]["id"] for item in first], [item["car"]["id"] for item in second])
 
     def test_no_match_returns_empty_list_instead_of_inventing_a_car(self):
-        results = rank_cars(
-            self.cars,
-            {"budget": 500000, "family_size": 8, "fuel_preferences": ["Electric"]},
-        )
+        results = rank_cars(self.cars, {"budget": 500000, "family_size": 8, "fuel_preferences": ["Electric"]})
         self.assertEqual(results, [])
 
 
