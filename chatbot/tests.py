@@ -368,3 +368,14 @@ class VehicleCentricDashboardTests(TestCase):
     def test_dashboard_requires_authentication(self):
         self.client.logout()
         self.assertEqual(self.client.get(reverse("dashboard")).status_code, 302)
+
+
+class VehicleProfilePrivacyTests(TestCase):
+    def test_legacy_vin_is_not_sent_in_ai_context(self):
+        user = User.objects.create_user(username="privacy-driver", password="test-pass-123")
+        session = ChatSession.objects.create(user=user, title="Legacy vehicle")
+        profile = VehicleProfile.objects.create(
+            session=session, make="Honda", model="City", year=2021,
+            vin="MALBB51BLMM123456",
+        )
+        self.assertNotIn("MALBB51BLMM123456", profile.as_context())
