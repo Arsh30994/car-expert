@@ -261,7 +261,7 @@ def send_message(request, session_id):
     shared_vehicle = selection.selected_vehicle if selection else None
     if session.garage_vehicle_id is None and shared_vehicle is not None:
         session.garage_vehicle = shared_vehicle
-        session.save(update_fields=["vehicle"])
+        session.save(update_fields=["garage_vehicle"])
     contextual_vehicle = session.garage_vehicle or shared_vehicle
     vehicle_context = contextual_vehicle.as_context() if contextual_vehicle else vehicle.as_context()
 
