@@ -77,7 +77,7 @@ class DiagnosticReportPersistenceTests(TestCase):
         with self.assertRaises(PermissionError):
             persist_diagnostic_report(
                 user=other, vehicle=vehicle, title="Unauthorized report",
-                payload=self.valid_payload(),
+                payload=DiagnosticSchemaTests().valid_payload(),
             )
 
     def test_report_service_persists_validated_structured_data(self):
@@ -85,7 +85,7 @@ class DiagnosticReportPersistenceTests(TestCase):
         vehicle = Vehicle.objects.create(user=owner, make="Tata", model="Nexon", year=2023)
         report = persist_diagnostic_report(
             user=owner, vehicle=vehicle, title="Cooling inspection",
-            payload=self.valid_payload(),
+            payload=DiagnosticSchemaTests().valid_payload(),
         )
         self.assertEqual(report.created_by, owner)
         self.assertEqual(report.vehicle, vehicle)
