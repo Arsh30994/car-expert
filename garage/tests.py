@@ -156,7 +156,7 @@ class VehicleCentricRecordTests(TestCase):
         self.user = User.objects.create_user(username="owner", password="safe-password-123")
         self.vehicle = Vehicle.objects.create(
             user=self.user, make="Hyundai", model="i20", year=2022,
-            nickname="Randeep's i20", registration_number="DL01AB1234", vin="MALBB51BLMM123456",
+            nickname="Randeep's i20", registration_number="DL01AB1234", vin="MALBB51BLMM123456", engine="1.2L Petrol",
             mileage_km=42380,
         )
 
@@ -168,6 +168,7 @@ class VehicleCentricRecordTests(TestCase):
     def test_vehicle_context_includes_nickname_and_odometer(self):
         context = self.vehicle.as_context()
         self.assertIn("Randeep's i20", context)
+        self.assertIn("1.2L Petrol", context)
         self.assertIn("42380 km", context)
         self.assertNotIn(self.vehicle.registration_number, context)
         self.assertNotIn(self.vehicle.vin, context)
