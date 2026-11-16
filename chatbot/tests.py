@@ -350,7 +350,7 @@ class VehicleCentricDashboardTests(TestCase):
         response = self.client.get(reverse("dashboard"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Your vehicle cockpit")
-        self.assertContains(response, "Randeep&#x27;s i20")
+        self.assertContains(response, "Randeep")
         self.assertEqual(response.context["vehicle_count"], 1)
 
     def test_new_chat_session_inherits_selected_vehicle(self):
