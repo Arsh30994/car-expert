@@ -11,6 +11,7 @@ class Vehicle(models.Model):
     model = models.CharField(max_length=80)
     year = models.PositiveIntegerField(validators=[MinValueValidator(1886), MaxValueValidator(2200)])
     variant = models.CharField(max_length=100, blank=True)
+    engine = models.CharField(max_length=80, blank=True)
     nickname = models.CharField(max_length=80, blank=True)
     registration_number = models.CharField(max_length=20, blank=True)
     fuel_type = models.CharField(max_length=40, blank=True)
@@ -38,6 +39,8 @@ class Vehicle(models.Model):
             parts.append(f"({self.nickname})")
         if self.variant:
             parts.append(self.variant)
+        if self.engine:
+            parts.append(self.engine)
         if self.fuel_type:
             parts.append(self.fuel_type)
         if self.transmission:
