@@ -1,4 +1,3 @@
-from django.contrib.auth import views as auth_views
 from django.urls import path
 
 from chatbot import views
@@ -14,13 +13,10 @@ urlpatterns = [
     path("maintenance/<int:task_id>/status/", views.update_maintenance_task, name="update_maintenance_task"),
     path(
         "accounts/login/",
-        auth_views.LoginView.as_view(
-            template_name="chatbot/login.html",
-            redirect_authenticated_user=True,
-        ),
+        views.login_view,
         name="login",
     ),
-    path("accounts/logout/", auth_views.LogoutView.as_view(), name="logout"),
+    path("accounts/logout/", views.logout_view, name="logout"),
     path("accounts/register/", views.register_view, name="register"),
     path("send/<int:session_id>/", views.send_message, name="send_message"),
     path("session/new/", views.new_session, name="new_session"),

@@ -522,6 +522,39 @@ class DedicatedWorkflowPageTests(TestCase):
         self.assertEqual(self.client.post(reverse("update_maintenance_task", args=[other_task.id]), {"status": "dismissed"}).status_code, 404)
 
 
+class DemoDataCommandTests(TestCase):
+    def test_seed_is_repeatable_and_isolated_to_the_demo_account(self):
+        real_user = User.objects.create_user(username="real-driver", password="test-pass-123")
+        real_vehicle = Vehicle.objects.create(user=real_user, make="Honda", model="Amaze", year=2022)
+
+        call_command("seed_demo_data", "--reset", verbosity=0)
+        demo_user = User.objects.get(username="car_expert_demo")
+        self.assertEqual(Vehicle.objects.filter(user=demo_user).count(), 15)
+        self.assertEqual(DiagnosticReport.objects.filter(created_by=demo_user).count(), 15)
+        self.assertEqual(MaintenanceTask.objects.filter(vehicle__user=demo_user).count(), 24)
+        self.assertEqual(ChatSession.objects.filter(user=demo_user).count(), 6)
+
+        call_command("seed_demo_data", verbosity=0)
+        self.assertEqual(Vehicle.objects.filter(user=demo_user).count(), 15)
+        self.assertEqual(DiagnosticReport.objects.filter(created_by=demo_user).count(), 15)
+        self.assertEqual(MaintenanceTask.objects.filter(vehicle__user=demo_user).count(), 24)
+        self.assertTrue(Vehicle.objects.filter(pk=real_vehicle.pk, user=real_user).exists())
+
+    def test_dashboard_insights_are_scoped_to_the_signed_in_user(self):
+        from garage.services import dashboard_insights
+
+        owner = User.objects.create_user(username="insight-owner", password="test-pass-123")
+        outsider = User.objects.create_user(username="insight-outsider", password="test-pass-123")
+        owner_vehicle = Vehicle.objects.create(user=owner, make="Tata", model="Nexon", year=2023)
+        outsider_vehicle = Vehicle.objects.create(user=outsider, make="Tata", model="Nexon", year=2023)
+        MaintenanceTask.objects.create(vehicle=owner_vehicle, title="Owner task", priority="high", estimated_cost="2400.00")
+        MaintenanceTask.objects.create(vehicle=outsider_vehicle, title="Outside task", priority="critical", estimated_cost="9000.00")
+
+        insights = dashboard_insights(owner)
+        self.assertEqual(insights["vehicles_requiring_attention"], 1)
+        self.assertEqual(str(insights["open_maintenance_cost"]), "2400")
+
+
 class VehicleProfilePrivacyTests(TestCase):
     def test_legacy_vin_is_not_sent_in_ai_context(self):
         user = User.objects.create_user(username="privacy-driver", password="test-pass-123")

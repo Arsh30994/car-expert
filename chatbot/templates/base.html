@@ -36,10 +36,14 @@
     <div class="topbar-actions">
       {% if user.is_authenticated %}
         <span class="user-avatar" title="{{ user.username }}" aria-label="Signed in as {{ user.username }}">{{ user.username|slice:":2"|upper }}</span>
+        {% if local_demo_mode %}
+          <span class="demo-mode-label">DEMO MODE</span>
+        {% else %}
         <form method="post" action="{% url 'logout' %}" class="logout-form">
           {% csrf_token %}
           <button type="submit" class="logout-btn">Log out</button>
         </form>
+        {% endif %}
       {% else %}
         <a href="{% url 'login' %}" class="new-session-btn">Sign in</a>
         <a href="{% url 'register' %}" class="new-session-btn accent">Create account</a>

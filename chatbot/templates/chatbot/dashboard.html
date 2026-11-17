@@ -18,6 +18,11 @@
     <article class="stat-panel"><span class="stat-label">OPEN MAINTENANCE</span><strong>{{ task_count }}</strong><span class="stat-foot">Tasks awaiting attention</span></article>
   </section>
 
+  <section class="cockpit-columns dashboard-insights" aria-label="Ownership insights">
+    <article class="cockpit-section"><div class="section-heading"><div><p class="eyebrow">VEHICLE HEALTH</p><h2>Attention overview</h2></div><span class="section-meta">LIVE RECORDS</span></div><div class="health-summary"><strong>{{ vehicle_health.healthy }}</strong><span>vehicles without recorded high-priority attention</span><strong class="health-attention">{{ vehicles_requiring_attention }}</strong><span>vehicles requiring attention</span></div></article>
+    <article class="cockpit-section"><div class="section-heading"><div><p class="eyebrow">PLANNING</p><h2>Estimated open cost</h2></div><span class="section-meta">ILLUSTRATIVE</span></div><p class="cost-total">₹{{ open_maintenance_cost|floatformat:0 }}</p><p class="insight-note">Estimates come from maintenance tasks and are not workshop quotes.</p></article>
+  </section>
+
   <section class="cockpit-section" id="garage">
     <div class="section-heading">
       <div><p class="eyebrow">YOUR DIGITAL GARAGE</p><h2>Vehicles</h2></div>
@@ -100,6 +105,11 @@
         <div class="quiet-empty"><strong>No open maintenance tasks</strong><p>Tasks created from diagnostic reports and service planning will be tracked here.</p></div>
       {% endfor %}
     </div>
+  </section>
+
+  <section class="cockpit-columns dashboard-insights">
+    <div class="cockpit-section"><div class="section-heading"><div><p class="eyebrow">UPCOMING</p><h2>Service appointments</h2></div></div>{% for task in upcoming_maintenance %}<article class="activity-row"><span class="activity-indicator urgency-{{ task.priority }}"></span><div><strong>{{ task.title }}</strong><p>{{ task.vehicle.display_name }}</p><small>{{ task.due_date|date:"M j, Y" }}</small></div></article>{% empty %}<div class="quiet-empty"><strong>No upcoming appointments</strong><p>Add a due date to a maintenance task to plan service.</p></div>{% endfor %}</div>
+    <div class="cockpit-section"><div class="section-heading"><div><p class="eyebrow">SERVICE HISTORY</p><h2>Recent workshop records</h2></div></div>{% for record in recent_services %}<article class="activity-row"><span class="activity-indicator urgency-low"></span><div><strong>{{ record.service_type }}</strong><p>{{ record.vehicle.display_name }} · {{ record.provider }}</p><small>{{ record.service_date|date:"M j, Y" }} · {{ record.odometer_km }} km</small></div></article>{% empty %}<div class="quiet-empty"><strong>No service records</strong><p>Service records will appear here once you add them.</p></div>{% endfor %}</div>
   </section>
 </main>
 {% endblock %}

@@ -1227,6 +1227,8 @@ select:focus-visible, textarea:focus-visible, summary:focus-visible {
 .logout-btn:hover { border-color: var(--red); color: var(--text); }
 
 .cockpit-page {
+    position: relative;
+    isolation: isolate;
     min-height: calc(100vh - 70px);
     height: auto;
     padding: 38px clamp(18px, 4vw, 64px) 64px;
@@ -1236,6 +1238,17 @@ select:focus-visible, textarea:focus-visible, summary:focus-visible {
         var(--bg);
     color: var(--text);
 }
+.cockpit-page::before {
+    position: absolute;
+    inset: 9rem 2rem 3rem auto;
+    z-index: -1;
+    width: min(68vw, 880px);
+    background: url("car-blueprint.svg") center / contain no-repeat;
+    content: "";
+    opacity: .045;
+    pointer-events: none;
+}
+.cockpit-page > * { position: relative; }
 .cockpit-hero { margin-top: 4px; margin-bottom: 32px; }
 .eyebrow {
     color: var(--amber);
@@ -1540,6 +1553,7 @@ html, body { overflow-x: hidden; }
     .cockpit-nav { order: 3; flex-basis: 100%; width: 100%; overflow-x: auto; padding: 3px 0 5px; }
     .topbar-actions { margin-left: auto; }
     .cockpit-page { min-height: calc(100vh - 109px); padding: 26px 18px 44px; }
+    .cockpit-page::before { inset: 10rem 0 auto; width: 100%; height: 360px; opacity: .028; }
     .cockpit-hero { align-items: flex-start; flex-direction: column; }
     .cockpit-stats, .cockpit-columns { grid-template-columns: minmax(0, 1fr); }
     .cockpit-stats { gap: 10px; }
@@ -1570,6 +1584,7 @@ html, body { overflow-x: clip; }
 .context-label { color: var(--muted); font: 9px "JetBrains Mono", monospace; letter-spacing: .1em; }
 .vehicle-context-link strong { font-size: 12px; }
 .user-avatar { display: grid; width: 34px; height: 34px; place-items: center; border: 1px solid rgba(227,167,59,.55); border-radius: 50%; background: rgba(227,167,59,.14); color: var(--amber); font: 700 11px "JetBrains Mono", monospace; }
+.demo-mode-label { color: var(--amber); font: 600 10px "JetBrains Mono", monospace; letter-spacing: .08em; }
 .detail-page { min-height: calc(100vh - 70px); }
 .page-heading { max-width: 900px; margin: 4px auto 30px; }
 .page-heading h1 { margin: 4px 0 10px; font-size: clamp(30px,4vw,46px); letter-spacing: -.04em; }
@@ -1584,6 +1599,7 @@ html, body { overflow-x: clip; }
 .system-grid article,.report-card { padding: 18px; border: 1px solid var(--border); border-radius: 9px; background: rgba(20,23,29,.72); }
 .system-grid h3,.report-card h2 { margin: 0 0 8px; font-size: 15px; }
 .system-grid p,.report-card p { color: var(--muted); font-size: 12px; line-height: 1.6; }
+.report-meta { margin-top: 10px !important; color: var(--teal) !important; font-size: 11px !important; }
 .report-list { display: grid; gap: 12px; max-width: 980px; margin: 0 auto; }
 .report-card { display: flex; justify-content: space-between; gap: 20px; border-left: 3px solid var(--teal); }
 .report-card.urgency-high { border-left-color: var(--amber); }
@@ -1602,6 +1618,12 @@ html, body { overflow-x: clip; }
 .recommendation-card>strong { color: var(--amber); font: 10px "JetBrains Mono", monospace; white-space: nowrap; }
 .recommendation-card.state-overdue { border-left: 3px solid var(--red); }
 .recommendation-card.state-plan { border-left: 3px solid var(--amber); }
+.dashboard-insights { margin-bottom: 24px; }
+.health-summary { display:grid; grid-template-columns:auto 1fr; align-items:center; gap:8px 12px; }
+.health-summary strong,.cost-total { color:var(--teal); font-size:30px; line-height:1; }
+.health-summary .health-attention { color:var(--amber); }
+.health-summary span,.insight-note { color:var(--muted); font-size:12px; line-height:1.45; }
+.cost-total { margin:10px 0 7px; color:var(--amber); }
 .secondary-action,.icon-action { margin-top: 12px; border: 1px solid var(--border); border-radius: 6px; background: transparent; color: var(--text); padding: 8px 10px; font: 600 10px "JetBrains Mono", monospace; cursor: pointer; }
 .secondary-action:hover,.icon-action:hover { border-color: var(--amber); color: var(--amber); }
 .task-status-form { display: grid; gap: 5px; margin-left: auto; }

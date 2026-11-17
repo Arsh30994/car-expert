@@ -1,12 +1,13 @@
 import os
 import tempfile
 import logging
+from functools import wraps
 from datetime import date, timedelta
 from pathlib import Path
 
 from django.conf import settings
-from django.contrib.auth import login
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth import get_user_model, login
+from django.contrib.auth.decorators import login_required as django_login_required
 from django.contrib.auth.forms import UserCreationForm
 from django.db import DatabaseError, connection
 from django.http import JsonResponse
@@ -21,6 +22,7 @@ from garage.models import GarageSelection, Vehicle
 from garage.serializers import VehicleSerializer
 from diagnostics.models import DiagnosticReport
 from garage.models import MaintenanceTask, ServiceRecord
+from garage.services import dashboard_insights
 
 from .models import ChatSession, Message, VehicleProfile
 
@@ -28,6 +30,22 @@ from .models import ChatSession, Message, VehicleProfile
 logger = logging.getLogger(__name__)
 
 SUPPORTED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
+LOCAL_DEMO_USERNAME = "car_expert_demo"
+
+
+def login_required(view_func):
+    """Normal authentication, with an opt-in local-only demo workspace bypass."""
+    protected_view = django_login_required(view_func)
+
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        if settings.LOCAL_DEMO_MODE and not request.user.is_authenticated:
+            demo_user = get_user_model().objects.filter(username=LOCAL_DEMO_USERNAME).first()
+            if demo_user:
+                login(request, demo_user)
+        return protected_view(request, *args, **kwargs)
+
+    return wrapper
 
 
 # These are conservative ownership reminders, not manufacturer service schedules.
@@ -185,6 +203,8 @@ def _upload_error(uploaded_file):
 
 @require_http_methods(["GET", "POST"])
 def register_view(request):
+    if settings.LOCAL_DEMO_MODE:
+        return _local_demo_login(request)
     if request.user.is_authenticated:
         return redirect("dashboard")
 
@@ -197,6 +217,28 @@ def register_view(request):
     return render(request, "chatbot/register.html", {"form": form})
 
 
+def _local_demo_login(request):
+    demo_user = get_user_model().objects.filter(username=LOCAL_DEMO_USERNAME).first()
+    if not demo_user:
+        return JsonResponse({"error": "Run seed_demo_data before enabling local demo mode."}, status=503)
+    login(request, demo_user)
+    return redirect("dashboard")
+
+
+def login_view(request):
+    if settings.LOCAL_DEMO_MODE:
+        return _local_demo_login(request)
+    from django.contrib.auth.views import LoginView
+    return LoginView.as_view(template_name="chatbot/login.html", redirect_authenticated_user=True)(request)
+
+
+def logout_view(request):
+    if settings.LOCAL_DEMO_MODE:
+        return redirect("dashboard")
+    from django.contrib.auth.views import LogoutView
+    return LogoutView.as_view()(request)
+
+
 @login_required
 def dashboard_view(request):
     vehicles = Vehicle.objects.filter(user=request.user)
@@ -206,6 +248,7 @@ def dashboard_view(request):
     tasks = MaintenanceTask.objects.filter(
         vehicle__user=request.user, status__in=["pending", "scheduled"]
     )
+    insights = dashboard_insights(request.user)
     return render(request, "chatbot/dashboard.html", {
         "garage_vehicles": vehicles,
         "selected_vehicle": selected_vehicle,
@@ -214,6 +257,7 @@ def dashboard_view(request):
         "vehicle_count": vehicles.count(),
         "report_count": reports.count(),
         "task_count": tasks.count(),
+        **insights,
     })
 
 

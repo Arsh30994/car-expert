@@ -12,7 +12,7 @@ class VehicleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Vehicle
         fields = ["id", "make", "model", "year", "variant", "engine", "nickname", "registration_number", "fuel_type", "transmission",
-                  "mileage_km", "current_odometer_km", "vin", "display_name", "created_at", "updated_at"]
+                  "mileage_km", "current_odometer_km", "vin", "purchase_date", "ownership_notes", "service_status", "display_name", "created_at", "updated_at"]
         read_only_fields = ["id", "display_name", "created_at", "updated_at"]
 
     def validate_year(self, value):

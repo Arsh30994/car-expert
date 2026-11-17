@@ -18,6 +18,9 @@ class Vehicle(models.Model):
     transmission = models.CharField(max_length=40, blank=True)
     mileage_km = models.PositiveIntegerField(default=0)
     vin = models.CharField(max_length=17, blank=True)
+    purchase_date = models.DateField(null=True, blank=True)
+    ownership_notes = models.CharField(max_length=160, blank=True)
+    service_status = models.CharField(max_length=32, blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -104,6 +107,7 @@ class MaintenanceTask(models.Model):
     due_odometer_km = models.PositiveIntegerField(null=True, blank=True)
     source = models.CharField(max_length=160, blank=True)
     completed_at = models.DateTimeField(null=True, blank=True)
+    estimated_cost = models.DecimalField(max_digits=11, decimal_places=2, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

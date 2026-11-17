@@ -76,6 +76,9 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "dashboard"
 LOGOUT_REDIRECT_URL = "login"
+# Explicit local-only switch for showcasing the seeded demo workspace. It is
+# opt-in and can never activate in production.
+LOCAL_DEMO_MODE = DEBUG and os.getenv("LOCAL_DEMO_MODE", "").lower() in {"1", "true", "yes"}
 
 
 # Application definition
@@ -122,6 +125,7 @@ TEMPLATES = [
                 'django.template.context_processors.csrf',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'chatbot.context_processors.local_demo_mode',
             ],
         },
     },
